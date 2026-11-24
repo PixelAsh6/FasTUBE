@@ -26,6 +26,7 @@ ui-close-now-playing = Close now playing
 ui-queue = Queue
 ui-up-next = Up next
 ui-close-queue = Close queue
+ui-close-lyrics = Close lyrics
 ui-clear-queue = Clear queue
 ui-empty-queue = Nothing queued yet
 ui-auto-similar = Autoplay similar songs
