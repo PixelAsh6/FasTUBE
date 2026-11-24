@@ -70,7 +70,7 @@ settings-ratings-list-icons-desc = Show ratings beside the duration. Hover over 
 settings-ratings-dim-disliked = Dim disliked songs
 settings-ratings-dim-disliked-desc = Show disliked songs in muted colors in song lists.
 settings-ratings-skip-disliked = Dislike skips to the next track
-settings-ratings-skip-disliked-desc = Advance after YouTube Music confirms the dislike. Guests in Listen together follow the host’s playback.
+settings-ratings-skip-disliked-desc = Advance after YouTube Music confirms the dislike. Guests in Group Listening follow the host’s playback.
 settings-ratings-dislike-notices = Dislike notifications
 settings-ratings-dislike-notices-desc = Show a message when a dislike is saved or removed.
 settings-ratings-unlike-notices = Like removal notifications
@@ -110,7 +110,7 @@ settings-centre = Centre
 ## Equalizer
 
 settings-equalizer = Equalizer
-settings-equalizer-desc = Shape the sound from deep bass to treble. Only what you hear changes: not downloads, or what others in a jam hear.
+settings-equalizer-desc = Shape the sound from deep bass to treble. Only what you hear changes: not downloads, or what others in the group hear.
 settings-preset = Preset
 settings-custom = Custom
 settings-equalizer-preset = Equalizer preset
@@ -127,7 +127,7 @@ settings-playback-speed-desc = Play songs faster or slower, also from a button i
 settings-speed = Speed
 settings-keep-pitch = Keep the pitch
 settings-keep-pitch-desc = Faster or slower without sounding higher or lower. Off, the pitch changes with the speed, like a record.
-settings-playback-speed-jam-note = Back to normal while you're in a jam, so everyone hears the same song.
+settings-playback-speed-jam-note = Back to normal while you're in a group, so everyone hears the same song.
 
 ## Music videos
 
@@ -354,7 +354,7 @@ settings-backup-stream-prompt-enable = Turn on and retry
 settings-backup-stream-prompt-settings = Settings
 settings-backup-stream-prompt-dismiss = Not now
 settings-proxy = Proxy
-settings-proxy-desc = Send everything FasTUBE fetches through a proxy: songs, lyrics, sign-in and Listen together.
+settings-proxy-desc = Send everything FasTUBE fetches through a proxy: songs, lyrics, sign-in and Group Listening.
 settings-proxy-windows-uses = Windows is set to use { $proxy }.
 settings-proxy-windows-none = Windows isn't set to use a proxy, so FasTUBE connects directly.
 settings-proxy-environment-sets = The environment sets { $proxy }.

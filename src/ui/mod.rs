@@ -83,7 +83,7 @@ pub enum Page {
     Settings,
     /// Transfer from Spotify.
     Transfer,
-    /// Listen together.
+    /// Group listening.
     Jam,
 }
 
@@ -778,7 +778,7 @@ pub struct App {
     recognize: Arc<crate::recognize::Recognizer>,
     /// It paused our playback to listen; play again once it has.
     recognizing: recognize::Recognizing,
-    /// Listen together: the room we're in, if any.
+    /// Group listening: the room we're in, if any.
     jam: jam::Session,
     signing_in: Arc<AtomicBool>,
     toast: Option<(String, f64)>,
@@ -1265,7 +1265,7 @@ impl App {
             Ok("downloads") => app.go(Page::Library(LibTab::Downloads)),
             Ok("settings") => app.go(Page::Settings),
             Ok("transfer") => app.go(Page::Transfer),
-            Ok("jam") => app.go(Page::Jam),
+            Ok("jam") => app.go(Page::Jam), // the share link's path
             Ok(p) if p.starts_with("album:") => app.go(Page::Album(p[6..].to_owned())),
             Ok(p) if p.starts_with("mood:") => app.go(Page::Mood(p[5..].to_owned())),
             Ok(p) if p.starts_with("artist:") => app.go(Page::Artist(p[7..].to_owned())),

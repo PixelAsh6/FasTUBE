@@ -1,4 +1,4 @@
-//! Listen together ("Jam"): a room on a small relay server (`server/`) that keeps
+//! Group listening: a room on a small relay server (`server/`) that keeps
 //! everyone on the same song at the same moment.
 //!
 //! No audio goes through the server: each member streams the song from YouTube like

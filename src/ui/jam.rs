@@ -1,4 +1,4 @@
-//! Listen together: the page (start, join, the room), the host sending its playback
+//! Group listening: the page (start, join, the room), the host sending its playback
 //! to the room, and guests following it. The connection itself is `crate::jam`.
 
 use std::collections::HashMap;
@@ -808,7 +808,7 @@ fn room(app: &mut App, ui: &mut Ui) {
 
 // ------------------------------------------------------------------ devices menu
 
-/// Listen together in the devices menu, under the output devices: a name and Start, then
+/// Group listening in the devices menu, under the output devices: a name and Start, then
 /// a code or a pasted invite, while out of a room; the count, the link, the QR, the
 /// people and the host's switches while in one.
 pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {

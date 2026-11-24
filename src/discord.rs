@@ -113,7 +113,7 @@ pub enum Page {
     Song,
     Artist,
     Album,
-    /// The Listen together room, while there is one.
+    /// The group listening room, while there is one.
     Jam,
 }
 
@@ -199,7 +199,7 @@ pub struct Presence {
     pub start_ms: i64,
     pub end_ms: Option<i64>,
     pub paused: bool,
-    /// The share link of the Listen together room we're in.
+    /// The share link of the group listening room we're in.
     pub jam: Option<String>,
 }
 
@@ -627,7 +627,7 @@ mod tests {
         assert!(Card::new(&song(), &prefs).buttons.is_empty());
         let link = "https://grapedjuice.github.io/ytm-rs/jam/?c=ABC234";
         let c = Card::new(&Presence { jam: Some(link.into()), ..song() }, &prefs);
-        assert_eq!(c.buttons, vec![("Listen together", link.to_owned())]);
+        assert_eq!(c.buttons, vec![("Group Listening", link.to_owned())]);
     }
 
     #[test]

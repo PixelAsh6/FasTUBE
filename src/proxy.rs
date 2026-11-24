@@ -1,6 +1,6 @@
 //! Settings › Network › Proxy. Everything ytm-rs fetches goes through one setting:
 //! the API and song streams, lyrics, translation, updates, the Spotify transfer,
-//! yt-dlp, the sign-in windows and Listen together.
+//! yt-dlp, the sign-in windows and Group Listening.
 //!
 //! - System: whatever Windows is set to (Settings › Network › Proxy), else the
 //!   `HTTPS_PROXY`/`ALL_PROXY`/`HTTP_PROXY` environment variables, else direct. On
@@ -370,7 +370,7 @@ fn has_login(p: &url::Url) -> bool {
 }
 
 /// A TCP connection to `host:port`, through the active proxy when there is one.
-/// Used for Listen together's WebSocket, which reqwest doesn't carry.
+/// Used for group listening's WebSocket, which reqwest doesn't carry.
 pub async fn connect(host: &str, port: u16) -> anyhow::Result<TcpStream> {
     let Some(p) = active().resolve().or_else(env_proxy) else {
         return Ok(TcpStream::connect((host, port)).await?);
@@ -449,7 +449,7 @@ fn percent(s: &str) -> String {
     url::form_urlencoded::parse(format!("x={s}").as_bytes()).next().map(|(_, v)| v.into_owned()).unwrap_or_default()
 }
 
-/// `HTTPS_PROXY`/`HTTP_PROXY`, which reqwest honours by itself; Listen together reads them here.
+/// `HTTPS_PROXY`/`HTTP_PROXY`, which reqwest honours by itself; group listening reads them here.
 fn env_proxy() -> Option<url::Url> {
     if matches!(active(), Setting::Off) {
         return None;

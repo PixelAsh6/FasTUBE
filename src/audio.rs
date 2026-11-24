@@ -44,7 +44,7 @@ pub enum AudioCmd {
     /// A song was asked for: open the device now, while its stream is still on the way.
     Warm,
     /// Seek to where `pos` will have moved on to by the time the seek lands (`pos` was
-    /// current at `at`): following someone else's playback (listen together).
+    /// current at `at`): following someone else's playback (group listening).
     SeekLive { pos: Duration, at: std::time::Instant },
     Volume,
     /// The output device failed (unplugged, headphones disconnected): sent by the

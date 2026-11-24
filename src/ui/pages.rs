@@ -3498,7 +3498,7 @@ fn output_device_picker(app: &mut App, ui: &mut Ui) {
 }
 
 /// The output devices to pick from in `popup` (opened by `btn`): the system default, then
-/// the sound cards, and Listen together under them. For Settings › Output device and the
+/// the sound cards, and Group Listening under them. For Settings › Output device and the
 /// player bar's button.
 pub(super) fn output_device_menu(app: &mut App, btn: &egui::Response, popup: egui::Popup, width: f32) {
     // Listed when opened, so a device that just connected shows up. Only then: the player
@@ -3521,7 +3521,7 @@ pub(super) fn output_device_menu(app: &mut App, btn: &egui::Response, popup: egu
                 }
             }
         });
-        // Listen together, right under the devices.
+        // Group listening, right under the devices.
         widgets::menu_divider(ui);
         super::jam::popup_section(app, ui, width);
     });
