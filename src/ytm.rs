@@ -1600,8 +1600,14 @@ pub fn upload_entity(video_id: &str) -> Option<String> {
 }
 
 /// "2020", or with the mark some languages write after it ("2020年", "2020년").
-fn is_year(s: &str) -> bool {
+pub(crate) fn is_year(s: &str) -> bool {
     s.get(..4).is_some_and(|y| y.bytes().all(|b| b.is_ascii_digit())) && matches!(&s[4..], "" | "年" | "년")
+}
+
+/// A collection subtitle's release year: the last word that is one ("Album • Artist • 2020").
+pub(crate) fn year_from_subtitle(subtitle: &str) -> Option<String> {
+    let words: Vec<&str> = subtitle.split(" • ").map(str::trim).collect();
+    words.iter().rev().find(|w| is_year(w)).map(|w| (*w).to_owned())
 }
 
 /// An uploaded album and the token for more of its songs. Its header is the one albums had

@@ -436,6 +436,8 @@ impl App {
                 ctrl(egui::Key::ArrowLeft),
                 k(egui::Key::L),
                 k(egui::Key::F) || k(egui::Key::F11),
+                // Up next beside the fullscreen lyrics (plain Q; Ctrl+Q quits below).
+                k(egui::Key::Q),
                 i.key_pressed(egui::Key::Escape),
                 ctrl(egui::Key::ArrowUp),
                 ctrl(egui::Key::ArrowDown),
@@ -452,7 +454,7 @@ impl App {
                 !editing && i.modifiers.command && !i.modifiers.shift && i.key_pressed(egui::Key::Z),
             )
         });
-        let (space, back, fwd, next, prev, lyr, full, esc, vol_up, vol_down, mini, refresh, quit, undo) = i;
+        let (space, back, fwd, next, prev, lyr, full, fsq, esc, vol_up, vol_down, mini, refresh, quit, undo) = i;
         // ← and → seek, unless something on screen has them: a focused widget moves the
         // focus with them (or its cursor, in a text box), and a menu, a dialog or the
         // palette is in front of the player.
@@ -507,13 +509,18 @@ impl App {
         if lyr {
             self.toggle_lyrics();
         }
-        if full && self.np_open {
+        if full && self.current().is_some() {
             self.toggle_fullscreen(ctx);
+        }
+        if fsq && self.fullscreen {
+            self.fs_queue = !self.fs_queue;
         }
         // A menu or dialog that's open takes this Esc for itself.
         if esc && !egui::Popup::is_any_open(ctx) && ctx.memory(|m| m.top_modal_layer()).is_none() {
             if self.row_drag.take().is_some() {
                 // Just the drag.
+            } else if self.qr_screen {
+                self.qr_screen = false;
             } else if self.fullscreen {
                 self.set_fullscreen(ctx, false);
             } else {
@@ -525,23 +532,34 @@ impl App {
         }
     }
 
-    /// Now playing with its lyrics, or back out of it (L).
+    /// The side lyrics panel (L, and the bar's button); with Now playing open, its tab.
     pub(super) fn toggle_lyrics(&mut self) {
-        if self.current().is_some() {
-            self.np_open = !self.np_open;
-            self.np_tab = NpTab::Lyrics;
+        if self.current().is_none() {
+            return;
+        }
+        if self.np_open {
+            self.np_tab = if self.np_tab == NpTab::Lyrics { NpTab::Art } else { NpTab::Lyrics };
+        } else {
+            self.lyrics_open = !self.lyrics_open;
+            if self.lyrics_open {
+                self.queue_open = false;
+            }
         }
     }
 
-    /// Full screen in now playing, or out of it (F).
+    /// Full screen in now playing, or out of it (F). F works from anywhere: now playing
+    /// opens into it.
     pub(super) fn toggle_fullscreen(&mut self, ctx: &egui::Context) {
         // With a video on show, full screen is the video's, as F is on YouTube.
         if self.fullscreen {
             self.set_fullscreen(ctx, false);
-        } else if self.shown_video().is_some() {
-            self.set_video_fullscreen(ctx, true);
         } else {
-            self.set_fullscreen(ctx, true);
+            self.np_open = true;
+            if self.shown_video().is_some() {
+                self.set_video_fullscreen(ctx, true);
+            } else {
+                self.set_fullscreen(ctx, true);
+            }
         }
     }
 
@@ -555,6 +573,9 @@ impl App {
             self.np_tab = if self.queue_shown() { NpTab::Art } else { NpTab::UpNext };
         } else {
             self.queue_open = !self.queue_open;
+            if self.queue_open {
+                self.lyrics_open = false;
+            }
         }
     }
 

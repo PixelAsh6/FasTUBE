@@ -2,9 +2,10 @@
 //! animated background. The lyrics themselves are drawn by `karaoke` (a port of the
 //! better-lyrics renderer); this adds their toolbar and the plain-text fallback.
 
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use egui::{Color32, Rect, Sense, Ui, Vec2, pos2, vec2};
+use egui::{Color32, Galley, Rect, Sense, Ui, Vec2, pos2, vec2};
 
 use super::widgets::{self, icon_button, menu_divider, named, text_at};
 use super::{Action, App, NpTab, Sleep, karaoke};
@@ -617,7 +618,7 @@ fn np_content(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
             let r = Rect::from_min_max(pos2(split, content.top()), content.max);
             let mut rui = ui.new_child(egui::UiBuilder::new().max_rect(r));
             rui.set_clip_rect(r.intersect(ui.clip_rect()));
-            lyrics_panel(app, &mut rui, r, now, false);
+            lyrics_panel(app, &mut rui, r, now, false, 1.0);
         } else {
             video_stage(app, ui, content, video);
         }
@@ -627,6 +628,12 @@ fn np_content(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
         app.video_frame = None;
         app.glow = None;
         app.restore_art();
+    }
+    // This fork's fullscreen: song facts on the left, lyrics in the middle, Up next on
+    // the right. Narrower windows keep the theme's own layout.
+    if app.fullscreen && content.width() >= 1000.0 {
+        fs_columns(app, ui, content, track, no_lyrics, now);
+        return;
     }
     let PanelMotion { tab: panel_tab, p, panel_vis, art_vis } = panel_motion(app, ui.ctx(), &track.id, no_lyrics, now);
     let ppp = ui.ctx().pixels_per_point();
@@ -776,7 +783,7 @@ fn np_content(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
         rui.set_clip_rect(clip);
         rui.multiply_opacity(panel_vis * vis);
         match tab {
-            NpTab::Lyrics => lyrics_panel(app, &mut rui, r, now, centered),
+            NpTab::Lyrics => lyrics_panel(app, &mut rui, r, now, centered, 1.0),
             NpTab::Comments => super::comments::panel(app, &mut rui),
             _ => super::shell::queue_list(app, &mut rui, "np"),
         }
@@ -1187,6 +1194,62 @@ fn cover_glyph(ui: &Ui, c: egui::Pos2, glyph: char, px: f32, key: &str, name: &s
     let a = if on { 1.0 } else { 0.6 + 0.4 * h };
     widgets::icon_at(ui, c, glyph, px * press, theme::with_alpha(Color32::WHITE, a));
     resp
+}
+
+/// The fullscreen three columns: cover, title, artists and "Album - Year" on the left,
+/// lyrics in the middle a step smaller so more of the song fits, Up next on the right
+/// while `app.fs_queue`.
+fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::Track, no_lyrics: bool, now: f64) {
+    let queue_w = 340.0;
+    let queue_on = app.fs_queue && content.width() >= queue_w + 520.0;
+    // Left: the cover with the song facts under it, the album's year at the bottom.
+    let col = Rect::from_min_max(content.min, pos2(content.left() + (content.width() * 0.3).clamp(300.0, 460.0), content.bottom()));
+    let col = col.shrink2(egui::vec2(24.0, 10.0));
+    let col_cover = Rect::from_min_max(col.min, pos2(col.max.x, col.max.y - 46.0));
+    let px = (art_side(&app.look().cover, col_cover, true, ui.ctx().content_rect().width()) * ui.ctx().pixels_per_point()) as u32;
+    let artist_alpha = app.look().now_playing.artist_alpha;
+    let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(col));
+    cover_column(app, &mut cui, col_cover, track, no_lyrics, now, px, None);
+    let year = track.album.as_ref().and_then(|a| a.id.as_deref()).and_then(|id| app.album_year(Some(id)));
+    if let Some(name) = track.album.as_ref().map(|a| match &year {
+        Some(y) => format!("{} - {y}", a.name),
+        None => a.name.clone(),
+    }).filter(|line| !line.trim().is_empty()) {
+        let g = album_line_galley(&cui, &name, col.width() - 16.0);
+        let color = theme::with_alpha(theme::text_dim(), artist_alpha);
+        cui.painter().galley(pos2(col.center().x - g.size().x / 2.0, col.bottom() - 22.0 - g.size().y / 2.0), g, color);
+    }
+    // Middle: the lyrics.
+    let mid = Rect::from_min_max(pos2(col.right() + 12.0, content.top()), pos2(if queue_on { content.right() - queue_w - 12.0 } else { content.right() }, content.bottom()));
+    let mut mui = ui.new_child(egui::UiBuilder::new().max_rect(mid));
+    mui.set_clip_rect(mid.intersect(ui.clip_rect()));
+    lyrics_panel(app, &mut mui, mid.shrink2(egui::vec2(16.0, 8.0)), now, false, 0.75);
+    // Right: Up next.
+    if queue_on {
+        let q = Rect::from_min_max(pos2(content.right() - queue_w, content.top()), content.max);
+        let mut qui = ui.new_child(egui::UiBuilder::new().max_rect(q));
+        qui.set_clip_rect(q.intersect(ui.clip_rect()));
+        super::shell::queue_list(app, &mut qui, "fs");
+    }
+}
+
+/// The album line, one row, cut at its end with an ellipsis when it doesn't fit.
+fn album_line_galley(ui: &Ui, text: &str, max_w: f32) -> Arc<Galley> {
+    let font = theme::regular(14.0);
+    let color = Color32::WHITE;
+    let g = ui.painter().layout_no_wrap(text.to_owned(), font.clone(), color);
+    if g.size().x <= max_w {
+        return g;
+    }
+    let mut cut = text.to_owned();
+    while !cut.is_empty() {
+        cut.pop();
+        let g = ui.painter().layout_no_wrap(format!("{cut}..."), font.clone(), color);
+        if g.size().x <= max_w {
+            return g;
+        }
+    }
+    g
 }
 
 /// Artwork with the title and artists under it, laid out in `col`. `px`: the size to
@@ -1767,7 +1830,7 @@ fn video_fullscreen(app: &mut App, ui: &mut Ui, rect: Rect, track: &crate::model
         super::mini::toggle_mute(app, &left);
     }
     let (slider, _) = left.allocate_exact_size(vec2(90.0, 20.0), Sense::hover());
-    super::shell::volume_slider(app, &mut left, slider, "video-full-vol");
+    super::shell::volume_slider(app, &mut left, slider, "video-full-vol", true);
     left.add_space(14.0);
     if total > 0.0 {
         let g = widgets::time_galley(&left, &super::fmt_running(pos, total, app.time_left), theme::regular(13.5), Color32::WHITE);
@@ -2075,7 +2138,7 @@ pub(super) fn video_frame(app: &mut App, ctx: &egui::Context, track: &crate::mod
 
 // ------------------------------------------------------------------ lyrics
 
-fn lyrics_panel(app: &mut App, ui: &mut Ui, rect: Rect, now: f64, centered: bool) {
+pub(super) fn lyrics_panel(app: &mut App, ui: &mut Ui, rect: Rect, now: f64, centered: bool, scale: f32) {
     // Lent out for the frame rather than cloned (the drawing needs `app` mutably).
     let Some((id, set)) = app.lyrics.take() else {
         ui.add_space(rect.height() * 0.35);
@@ -2091,7 +2154,7 @@ fn lyrics_panel(app: &mut App, ui: &mut Ui, rect: Rect, now: f64, centered: bool
         if lyrics.sync == Sync::None {
             plain_lyrics(app, ui, panel, lyrics);
         } else {
-            synced(app, ui, panel, &id, lyrics, now, centered);
+            synced(app, ui, panel, &id, lyrics, now, centered, scale);
         }
     } else {
         ui.add_space(rect.height() * 0.4);
@@ -2144,7 +2207,8 @@ fn decorations<'a>(
     (roman, trans)
 }
 
-fn synced(app: &mut App, ui: &mut Ui, rect: Rect, id: &str, lyrics: &Lyrics, now: f64, narrow: bool) {
+#[allow(clippy::too_many_arguments)]
+fn synced(app: &mut App, ui: &mut Ui, rect: Rect, id: &str, lyrics: &Lyrics, now: f64, narrow: bool, scale: f32) {
     let style = app.lyric_prefs.style(app.look());
     let accent = app.accent_color();
     let centered = narrow;
@@ -2170,7 +2234,7 @@ fn synced(app: &mut App, ui: &mut Ui, rect: Rect, id: &str, lyrics: &Lyrics, now
         trans.hash(&mut h);
         h.finish()
     };
-    let own = karaoke::Own { scale: app.lyric_prefs.text_scale, weight: app.lyric_prefs.weight, deco_scale: app.lyric_prefs.deco_scale };
+    let own = karaoke::Own { scale: app.lyric_prefs.text_scale * scale, weight: app.lyric_prefs.weight, deco_scale: app.lyric_prefs.deco_scale };
     let fullscreen = app.fullscreen;
     let glass_chip = app.look().app.glass.instrumental;
     let quick_scroll = app.quick_lyric_scroll;

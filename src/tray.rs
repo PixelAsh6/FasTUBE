@@ -104,7 +104,7 @@ impl Tray {
         }
     }
 
-    /// Say "Hide YT Music" while the window is on screen, else "Show YT Music".
+    /// Say "Hide FasTUBE" while the window is on screen, else "Show FasTUBE".
     pub fn set_shown(&mut self, shown: bool) {
         if shown == self.shown {
             return;
@@ -147,11 +147,11 @@ impl Icon {
     }
 }
 
-/// "YT Music", with the song under it. Windows cuts a tooltip off at 127 characters
+/// "FasTUBE", with the song under it. Windows cuts a tooltip off at 127 characters
 /// (UTF-16 ones), so a long one ends in "…" there instead.
 fn tooltip(song: Option<&str>) -> String {
-    let Some(song) = song else { return "YT Music".to_owned() };
-    cut(&format!("YT Music\n{song}"), 127, |g| g.encode_utf16().count())
+    let Some(song) = song else { return "FasTUBE".to_owned() };
+    cut(&format!("FasTUBE\n{song}"), 127, |g| g.encode_utf16().count())
 }
 
 /// The song line at the top of the menu. The menu is as wide as its widest item, so a
@@ -210,7 +210,7 @@ fn build(png: image::RgbaImage) -> anyhow::Result<Icon> {
     #[allow(unused_mut)]
     let mut builder = TrayIconBuilder::new()
         .with_icon(tray_icon::Icon::from_rgba(png.into_raw(), w, h)?)
-        .with_tooltip("YT Music")
+        .with_tooltip("FasTUBE")
         .with_menu(Box::new(menu))
         .with_menu_on_left_click(false);
     #[cfg(target_os = "linux")]
@@ -384,7 +384,7 @@ mod tests {
 
     #[test]
     fn tooltip_fits_windows() {
-        assert_eq!(tooltip(None), "YT Music");
+        assert_eq!(tooltip(None), "FasTUBE");
         assert_eq!(tooltip(Some("Song — Artist")), "YT Music\nSong — Artist");
         // Just fits: left as it is.
         let fits = "a".repeat(127 - 9);

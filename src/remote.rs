@@ -20,8 +20,9 @@ use tokio_tungstenite::tungstenite::handshake::server::{ErrorResponse, Request, 
 use tokio_tungstenite::tungstenite::http;
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 
-/// `ws://127.0.0.1:26540`. Not `localhost`: that can resolve to IPv6, which isn't bound.
-pub const PORT: u16 = 26540;
+/// `ws://127.0.0.1:26541` in this fork (26540 stays with the installed app). Not
+/// `localhost`: that can resolve to IPv6, which isn't bound.
+pub const PORT: u16 = 26541;
 
 const MAX_MESSAGE: usize = 4096;
 

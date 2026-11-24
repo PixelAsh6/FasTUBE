@@ -8,7 +8,6 @@ mod fullscreen;
 mod hls;
 mod proxy;
 mod renderer;
-mod airplay;
 mod art;
 mod audio;
 mod awake;
@@ -132,8 +131,8 @@ fn main() -> eframe::Result {
     let background = std::env::var_os("YTM_BACKGROUND").is_some();
     ui::init_titlebar(&data_dir());
     let mut viewport = egui::ViewportBuilder::default()
-        .with_title("YT Music")
-        .with_app_id("ytm-rs")
+        .with_title("FasTUBE")
+        .with_app_id("fastube")
         .with_inner_size(DEFAULT_SIZE)
         .with_min_inner_size(MIN_SIZE)
         // Windows, and Linux where the desktop draws none: the app draws its own title
@@ -181,7 +180,7 @@ fn main() -> eframe::Result {
     // `swap_buffers` an hour in) isn't one at start-up and shouldn't switch renderers.
     let started = std::cell::Cell::new(false);
     let run = eframe::run_native(
-        "ytm-rs",
+        "FasTUBE",
         options,
         Box::new(|cc| {
             started.set(true);
@@ -236,8 +235,6 @@ fn main() -> eframe::Result {
             let volume = if std::env::var_os("YTM_MUTE").is_some() { 0.0 } else { volume };
 
             let device = cc.storage.and_then(|s| s.get_string("output_device")).filter(|d| !d.is_empty());
-            // Before the audio engine, which looks for a picked AirPlay speaker if it may.
-            airplay::set_allowed(cc.storage.and_then(|s| s.get_string("local_network")).is_some_and(|v| v == "1"));
 
             let (audio_tx, audio_rx) = unbounded();
             let audio = audio::spawn(volume, log_volume, device, audio_tx, wake);
@@ -527,7 +524,7 @@ fn data_dir() -> std::path::PathBuf {
     if let Some(dir) = update::portable_dir() {
         return dir.join("data");
     }
-    directories::ProjectDirs::from("", "", "ytm-rs").expect("no home directory").data_dir().to_path_buf()
+    directories::ProjectDirs::from("", "", "fastube").expect("no home directory").data_dir().to_path_buf()
 }
 
 #[cfg(test)]

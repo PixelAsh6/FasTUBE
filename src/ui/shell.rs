@@ -458,11 +458,6 @@ pub fn sidebar(app: &mut App, ui: &mut Ui) {
     nav(ui, icon::HOUSE, crate::tr!("settings-home"), Page::Home, p == Page::Home, &mut go_to);
     nav(ui, icon::COMPASS, crate::tr!("nav-explore"), Page::Explore, matches!(p, Page::Explore | Page::Mood(_)), &mut go_to);
     nav(ui, icon::LIBRARY, crate::tr!("nav-library"), Page::Library(LibTab::Playlists), matches!(p, Page::Library(_)), &mut go_to);
-    let jam_label = match app.jam.member_count() {
-        n if app.jam.active() && n > 0 => crate::tr!("jam-listening-count", count = n),
-        _ => crate::tr!("nav-listen-together").to_owned(),
-    };
-    nav(ui, icon::USERS, &jam_label, Page::Jam, p == Page::Jam, &mut go_to);
 
     ui.add_space(14.0);
     let (line, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
@@ -621,7 +616,7 @@ pub fn sidebar(app: &mut App, ui: &mut Ui) {
             icon_at(ui, pos2(rect.left() + icon_x, rect.center().y), icon::SPARKLES, 18.0, theme::text());
             if a > 0.0 {
                 ui.painter().text(pos2(rect.left() + 46.0, rect.top() + 17.0), Align2::LEFT_CENTER, title, theme::semibold(13.5), theme::with_alpha(theme::text(), a));
-                ui.painter().text(pos2(rect.left() + 46.0, rect.top() + 35.0), Align2::LEFT_CENTER, format!("ytm-rs {v}"), theme::regular(12.0), theme::with_alpha(theme::text(), 0.75 * a));
+                ui.painter().text(pos2(rect.left() + 46.0, rect.top() + 35.0), Align2::LEFT_CENTER, format!("FasTUBE {v}"), theme::regular(12.0), theme::with_alpha(theme::text(), 0.75 * a));
             }
             if resp.clicked() && available {
                 app.notes_dialog = Some(super::notes::NotesDialog { version: v.clone(), ready: true });
@@ -1443,8 +1438,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     // Where the song starts: at the left, or just right of the left-hand transport, the
     // middle of what's left then being about the bar's.
     let art_side = chrome.thumb_px.unwrap_or(full.height() - 26.0).clamp(28.0, 64.0);
-    let show_dislike = app.rating_settings.player_button;
-    let song_tail = if show_dislike { 116.0 } else { 80.0 };
+    let song_tail = 80.0;
     // How wide the longer of the title and byline really is, buttons excluded.
     let song_text = track.as_ref().map_or(0.0, |t| {
         let width = |s: String, font: egui::FontId| ui.painter().layout_no_wrap(s, font, Color32::PLACEHOLDER).size().x;
@@ -1453,7 +1447,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let art_x = if song_middle {
         // The song centred in the bar, never under the transport to its left.
         let block = art_side + 14.0 + song_text.min((row.width() * 0.3 - 110.0).max(80.0)) + song_tail;
-        let min = if show_dislike { 290.0 } else { 300.0 };
+        let min = 300.0;
         (row.center().x - block / 2.0 + art_side / 2.0).max(row.left() + min)
     } else {
         row.left() + 30.0
@@ -1467,13 +1461,13 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let middle_room = row.right() - 240.0 - speed_w - song_tail - song_x;
     let song_end = song_x + if track.is_some() { song_text.min(title_w(middle_room)) + song_tail } else { 0.0 };
     // Room between the repeat button's edge (plus a gap) and the speed/output/lyrics/queue/expand/
-    // mini player buttons. The volume with its slider takes 140 px plus the time; the icon alone, 36.
+    // mini player buttons. The volume with its slider and percent takes 174 px plus the time; the icon alone, 36.
     let free = |half: f32| row.right() - 200.0 - speed_w - if song_middle { song_end } else { row.center().x + half + 12.0 };
-    let tight = free(141.0) < 140.0 + time_w;
+    let tight = free(141.0) < 174.0 + time_w;
     let half = if tight { 125.0 } else { 141.0 };
-    let compact_vol = free(half) < 140.0 + time_w;
+    let compact_vol = free(half) < 174.0 + time_w;
     let compact_vol = compact_vol || chrome.volume_on_hover || chrome.hide_volume;
-    let show_time = free(half) >= if compact_vol { 36.0 } else { 140.0 } + time_w && !time_under && chrome.time_at != crate::preset::TimeAt::AboveProgress;
+    let show_time = free(half) >= if compact_vol { 36.0 } else { 174.0 } + time_w && !time_under && chrome.time_at != crate::preset::TimeAt::AboveProgress;
 
     // Left: now playing
     if let Some(t) = &track {
@@ -1609,17 +1603,14 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
                 }
             }
         }
-        // Like: a heart right after the title/artist, filled red when liked.
+        // Add to playlist right after the title/artist, where the heart used to be.
         // What's heard, like Now playing's menu: a song version standing in for the music video.
         let t = &app.playing_track().cloned().unwrap_or_else(|| t.clone());
         let liked = app.heard_liked();
         let text_end = tr.right().max(ax).min(x + w);
         let lpos = pos2(text_end + 24.0, cy);
         let lr = Rect::from_center_size(lpos, Vec2::splat(36.0));
-        let dpos = lpos + vec2(36.0, 0.0);
-        let dr = Rect::from_center_size(dpos, Vec2::splat(34.0));
-        let menu_x = if show_dislike { dpos.x } else { lpos.x };
-        let kr = Rect::from_center_size(pos2(menu_x + 34.0, cy), Vec2::splat(30.0));
+        let kr = Rect::from_center_size(pos2(lpos.x + 34.0, cy), Vec2::splat(30.0));
         if let (Some(slot), Some([a, r])) = (block_slot, chrome.track_block) {
             let block = Rect::from_min_max(art.min - Vec2::splat(4.0), pos2(kr.right() + 4.0, art.bottom() + 4.0));
             ui.painter().set(slot, egui::epaint::RectShape::filled(block, r, theme::glass(a)));
@@ -1627,30 +1618,14 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
         for r in &menu_on {
             widgets::context_popup(r).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| widgets::song_menu(ui, t, liked, None, &mut app.actions));
         }
-        let lresp = ui.interact(lr, ui.scope_id().with(("like", &t.id, app.generation)), Sense::click());
-        let lresp = named(lresp, if liked { crate::tr!("ui-unlike") } else { crate::tr!("ui-like") }).on_hover_cursor(egui::CursorIcon::PointingHand);
-        let gesture = super::ratings::like_gesture(ui, &lresp, (), liked, None);
-        let lh = theme::anim_bool(ui.ctx(), lresp.id.with("h"), lresp.hovered(), 0.15);
-        let pop = theme::anim_bool(ui.ctx(), ("liked", &t.id), liked, 0.3);
-        ui.painter().circle_filled(lpos, 18.0, theme::glass(0.1 * lh));
-        let rating_size = 19.0;
-        let size = rating_size * (1.0 + (chrome.like_hover_scale - 1.0) * lh) * (1.0 + 0.25 * (pop * std::f32::consts::PI).sin());
-        // Hidden at rest in some themes, there as soon as the pointer's on the song, and a liked song always shows it.
-        let show_like = !chrome.like_on_hover || liked || on_song || lresp.has_focus();
-        let like_a = theme::anim_bool(ui.ctx(), lresp.id.with("show"), show_like, 0.15);
-        let idle = theme::lerp_color(theme::text_dim(), theme::text(), lh);
-        let outline = theme::with_alpha(theme::lerp_color(idle, theme::RED, pop), like_a);
-        if like_a > 0.0 {
-            super::ratings::unlike_heart(ui, lpos, size, pop, outline, theme::with_alpha(theme::RED, like_a), gesture.progress);
-        }
-        if gesture.hint {
-            super::ratings::unlike_hint(ui, &lresp);
-        }
-        if gesture.activate && let Some(action) = app.heard_like_action(!liked) {
-            app.actions.push(action);
-        }
-        if show_dislike {
-            super::ratings::player_button(app, ui, dr, t, rating_size, show_like);
+        let aresp = ui.interact(lr, ui.scope_id().with(("add-playlist", &t.id, app.generation)), Sense::click());
+        let aresp = named(aresp, crate::tr!("ui-add-playlist")).on_hover_cursor(egui::CursorIcon::PointingHand);
+        let ah = theme::anim_bool(ui.ctx(), aresp.id.with("h"), aresp.hovered(), 0.15);
+        ui.painter().circle_filled(lpos, 18.0, theme::glass(0.1 * ah));
+        let add_color = theme::lerp_color(theme::text_dim(), theme::text(), ah);
+        icon_at(ui, lpos, icon::LIST_PLUS, 19.0, add_color);
+        if aresp.clicked() {
+            app.actions.push(Action::AddToPlaylist(vec![t.clone()]));
         }
         // Hidden at rest with the heart in the same themes; kept while its menu is open.
         let kid = ui.scope_id().with("song-more");
@@ -1793,35 +1768,33 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     if right_btn(ui, icon::LIST_MUSIC, crate::tr!("ui-queue"), app.queue_shown()).clicked() {
         app.toggle_queue();
     }
-    // Not lit for a song without lyrics: now playing shows its artwork instead.
-    let lyrics_on = app.np_open && app.np_tab == NpTab::Lyrics && !app.no_lyrics();
+    // Lit while lyrics show: the side panel, or Now playing's tab. Not lit for a song
+    // without lyrics: now playing shows its artwork instead.
+    let lyrics_on = !app.no_lyrics() && if app.np_open { app.np_tab == NpTab::Lyrics } else { app.lyrics_open };
     if right_btn(ui, icon::MIC_VOCAL, crate::tr!("settings-lyrics"), lyrics_on).clicked() {
-        if lyrics_on {
-            app.np_tab = NpTab::Art;
-        } else {
-            app.np_tab = NpTab::Lyrics;
-            app.actions.push(Action::OpenNowPlaying(true));
-        }
+        app.toggle_lyrics();
     }
-    // Where the music plays: lit while that's an AirPlay speaker.
-    let on_airplay = app.output_device.as_ref().is_some_and(|(id, _)| id.starts_with(crate::airplay::PREFIX));
-    let out = right_btn(ui, icon::MONITOR_SPEAKER, crate::tr!("settings-output-device"), on_airplay);
+    // Where the music plays: lit while in a jam, whose room lives in this menu.
+    let out = right_btn(ui, icon::MONITOR_SPEAKER, crate::tr!("settings-output-device"), app.jam.active());
     let popup = widgets::menu_popup(&out).align(egui::RectAlign::TOP_END).align_alternatives(&[egui::RectAlign::BOTTOM_END]);
-    // Found on the network in the background, so read afresh each frame.
-    super::pages::output_device_menu(app, &out, popup, 300.0, &crate::airplay::speakers());
+    super::pages::output_device_menu(app, &out, popup, 300.0);
     if app.tempo_on {
         tempo_button(app, ui, Rect::from_center_size(pos2(rx - 20.0, cy), vec2(40.0, 18.0 * bar_scale + 16.0)), bar_rest, accent, dot_floor);
         rx -= 44.0;
     }
-    // Volume: a slider beside its icon, or in a narrow window the icon alone with the
-    // slider in a small popup above it while the pointer is over either. A theme that
-    // hides the volume hides only the slider in the bar: the icon and its popup stay.
+    // Volume: a slider with its percent at its right, or in a narrow window the icon
+    // alone with the slider in a small popup above it while the pointer is over either.
+    // A theme that hides the volume hides only the slider in the bar: the icon and its
+    // popup stay.
     let vol = app.audio.volume();
     let vi = if compact_vol {
         Rect::from_center_size(pos2(rx - 16.0, cy), Vec2::splat(32.0))
     } else {
-        let slider = Rect::from_min_size(pos2(rx - 96.0, cy - 10.0), vec2(90.0, 20.0));
-        volume_slider(app, ui, slider, "vol");
+        let pct_w = 34.0;
+        let slider = Rect::from_min_size(pos2(rx - 96.0 - pct_w, cy - 10.0), vec2(90.0, 20.0));
+        volume_slider(app, ui, slider, "vol", false);
+        let pct = format!("{}%", (vol * 100.0).round());
+        ui.painter().text(pos2(slider.right() + 8.0, cy), Align2::LEFT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
         Rect::from_center_size(pos2(slider.left() - 18.0, cy), Vec2::splat(32.0))
     };
     let vglyph = if vol == 0.0 { icon::VOLUME_X } else if vol < 0.5 { icon::VOLUME_1 } else { icon::VOLUME_2 };
@@ -1842,7 +1815,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
                 let (r, _) = ui.allocate_exact_size(pop.size(), Sense::hover());
                 ui.painter().rect_filled(r, 20.0, theme::menu_fill_solid());
                 ui.painter().rect_stroke(r, 20.0, egui::Stroke::new(1.0, theme::glass(0.08)), egui::StrokeKind::Inside);
-                volume_slider(app, ui, Rect::from_center_size(r.center(), vec2(r.width() - 32.0, 20.0)), "s");
+                volume_slider(app, ui, Rect::from_center_size(r.center(), vec2(r.width() - 32.0, 20.0)), "s", true);
             });
         }
         // Scrolling over the icon still sets the volume.
@@ -1880,9 +1853,9 @@ pub(super) fn normalization_note(app: &App) -> Option<String> {
     })
 }
 
-/// The volume track: click or drag to set, scroll over it to nudge. Pointed at, the
-/// volume shows above the knob.
-pub(super) fn volume_slider(app: &mut App, ui: &mut Ui, slider: Rect, salt: &str) {
+/// The volume track: click or drag to set, scroll over it to nudge. Where there is no
+/// percent beside the slider (`hover_label`), pointed at, the volume shows above the knob.
+pub(super) fn volume_slider(app: &mut App, ui: &mut Ui, slider: Rect, salt: &str, hover_label: bool) {
     let vol = app.audio.volume();
     let vresp = ui.interact(slider, ui.scope_id().with(salt), Sense::click_and_drag()).on_hover_cursor(egui::CursorIcon::PointingHand);
     vresp.widget_info(|| egui::WidgetInfo::slider(true, vol as f64, crate::tr!("ui-volume")));
@@ -1905,7 +1878,7 @@ pub(super) fn volume_slider(app: &mut App, ui: &mut Ui, slider: Rect, salt: &str
             app.audio.set_volume((vol + scroll / 600.0).clamp(0.0, 1.0));
         }
     }
-    if vh > 0.0 {
+    if hover_label && vh > 0.0 {
         // Where the volume is now, after this frame's drag or scroll. Above everything,
         // so the player bar's popup slider doesn't cut it off.
         let now = app.audio.volume();
@@ -2004,6 +1977,30 @@ pub fn queue_drawer(app: &mut App, ui: &mut Ui) {
     });
     ui.add_space(8.0);
     queue_list(app, ui, "drawer");
+}
+
+/// The side lyrics panel: Now playing's lyrics, where Up next sits.
+pub fn lyrics_drawer(app: &mut App, ui: &mut Ui, now: f64) {
+    ui.horizontal(|ui| {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            // Left of the window buttons, which sit over the drawer's top right.
+            ui.add_space(super::titlebar::right_gap(ui.ctx(), ui.max_rect(), 0.0));
+            if icon_button(ui, icon::X, 16.0, crate::tr!("ui-close-lyrics"), false).clicked() {
+                app.toggle_lyrics();
+            }
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                let label = crate::tr!("settings-lyrics");
+                let font = theme::bold(20.0);
+                // Cut at its end, which in Arabic is its left: egui's own truncation keeps the end.
+                let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ui.fonts_mut(|f| f.row_height(&font))), Sense::hover());
+                resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, label.as_str()));
+                text_at(ui, r.min, label.as_str(), font, theme::text(), r.width());
+            });
+        });
+    });
+    ui.add_space(8.0);
+    let rect = ui.available_rect_before_wrap();
+    super::nowplaying::lyrics_panel(app, ui, rect, now, false, 1.0);
 }
 
 /// "Play similar songs automatically". A long translation wraps: one wider than Up next

@@ -3234,13 +3234,6 @@ fn network(app: &mut App, ui: &mut Ui) {
         }
     });
     divider(ui);
-    let label = tr!("settings-local-network");
-    setting_row(ui, label, Some(tr!("settings-local-network-desc")), |ui| {
-        if toggle(ui, &mut app.local_network, label).changed() {
-            app.set_local_network();
-        }
-    });
-    divider(ui);
     let same = |a: &Setting, b: &Setting| std::mem::discriminant(a) == std::mem::discriminant(b);
     let mut pick = None;
     setting_row(ui, tr!("settings-proxy"), Some(tr!("settings-proxy-desc")), |ui| {
@@ -3486,68 +3479,51 @@ fn system_default() -> &'static str {
     if cfg!(windows) { tr!("settings-windows-default") } else { tr!("settings-system-default") }
 }
 
-/// A device's name in the list, AirPlay speakers marked as such.
-fn device_label(id: &str, name: &str) -> String {
-    if id.starts_with(crate::airplay::PREFIX) { tr!("settings-airplay-device", name = name) } else { name.to_owned() }
+/// A device's name in the list.
+fn device_label(_id: &str, name: &str) -> String {
+    name.to_owned()
 }
 
 fn output_device_picker(app: &mut App, ui: &mut Ui) {
-    // Found on the network in the background, so read afresh each frame.
-    let speakers = crate::airplay::speakers();
     let current = match &app.output_device {
         None => system_default().to_owned(),
-        Some((id, name)) => match app.output_devices.iter().map(|d| (&d.id, &d.name)).chain(speakers.iter().map(|s| (&s.id, &s.name))).find(|(d, _)| *d == id) {
+        Some((id, name)) => match app.output_devices.iter().map(|d| (&d.id, &d.name)).find(|(d, _)| *d == id) {
             Some((_, n)) => device_label(id, n),
             None if app.output_devices.is_empty() => device_label(id, name),
             None => tr!("settings-not-connected", name = device_label(id, name)),
         },
     };
     let btn = dropdown_button(ui, &current, 210.0, tr!("settings-output-device"));
-    output_device_menu(app, &btn, widgets::menu_popup(&btn), 340.0, &speakers);
+    output_device_menu(app, &btn, widgets::menu_popup(&btn), 340.0);
 }
 
-/// The output devices to pick from, in `popup` (opened by `btn`): sound cards, then AirPlay
-/// speakers with its mark. For Settings › Output device and the player bar's button.
-pub(super) fn output_device_menu(app: &mut App, btn: &egui::Response, popup: egui::Popup, width: f32, speakers: &[crate::airplay::Speaker]) {
+/// The output devices to pick from in `popup` (opened by `btn`): the system default, then
+/// the sound cards, and Listen together under them. For Settings › Output device and the
+/// player bar's button.
+pub(super) fn output_device_menu(app: &mut App, btn: &egui::Response, popup: egui::Popup, width: f32) {
     // Listed when opened, so a device that just connected shows up. Only then: the player
     // bar draws this every frame, and listing asks the system each time.
     if btn.clicked() {
         app.output_devices = crate::audio::output_devices(app.output_device.as_ref().map(|(id, _)| id.as_str()));
-        crate::airplay::discover();
     }
     let mut pick: Option<Option<(String, String)>> = None;
     popup.show(|ui| {
-        // Speakers turn up as they answer.
-        ui.ctx().request_repaint_after(std::time::Duration::from_millis(500));
         widgets::menu_body(ui, width);
         dropdown_list(ui, 320.0, |ui| {
             if option_row(ui, system_default(), app.output_device.is_none()).clicked() {
                 pick = Some(None);
                 ui.close();
             }
-            let cards = app.output_devices.iter().map(|d| (&d.id, &d.name, None));
-            let devices = cards.chain(speakers.iter().map(|s| (&s.id, &s.name, Some(theme::icon::AIRPLAY))));
-            for (id, name, mark) in devices {
-                if option_row_marked(ui, name, mark, app.output_device.as_ref().is_some_and(|(cur, _)| cur == id)).clicked() {
-                    pick = Some(Some((id.clone(), name.clone())));
+            for d in &app.output_devices {
+                if option_row(ui, &d.name, app.output_device.as_ref().is_some_and(|(cur, _)| cur == &d.id)).clicked() {
+                    pick = Some(Some((d.id.clone(), d.name.clone())));
                     ui.close();
                 }
             }
-            // AirPlay speakers need the network looked over, which Windows' firewall asks
-            // about: only once it's asked for. The menu stays open for them to turn up.
-            if !app.local_network {
-                widgets::menu_divider(ui);
-                if option_row_marked(ui, tr!("settings-local-network"), Some(theme::icon::AIRPLAY), false).clicked() {
-                    app.local_network = true;
-                    app.set_local_network();
-                }
-            } else if speakers.is_empty() {
-                widgets::menu_divider(ui);
-                let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 30.0), Sense::hover());
-                widgets::icon_at(ui, pos2(r.left() + 20.0, r.center().y), theme::icon::AIRPLAY, 15.0, theme::text_faint());
-                widgets::text_at(ui, pos2(r.left() + 38.0, r.center().y - 8.0), tr!("settings-airplay-searching"), theme::regular(13.0), theme::text_faint(), r.width() - 50.0);
-            }
         });
+        // Listen together, right under the devices.
+        widgets::menu_divider(ui);
+        super::jam::popup_section(app, ui, width);
     });
     if let Some(pick) = pick {
         app.audio.send(crate::audio::AudioCmd::SetDevice(pick.as_ref().map(|(id, _)| id.clone())));

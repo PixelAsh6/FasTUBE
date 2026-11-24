@@ -1,4 +1,4 @@
-//! Jam deep links: `ytm-rs://jam/CODE` and `https://grapedjuice.github.io/ytm-rs/jam/?c=CODE`.
+//! Jam deep links: `fastube://jam/CODE` (the `ytm-rs:` scheme still parses) and `https://grapedjuice.github.io/ytm-rs/jam/?c=CODE`.
 //!
 //! Clicking a link launches a new process with the URL as its argument. If another
 //! instance is already running, the new one hands the code over a named pipe (a Unix
@@ -25,7 +25,7 @@ pub fn parse(arg: &str) -> Option<String> {
     let arg = arg.trim().trim_matches('"');
     let (scheme, rest) = arg.split_once("://")?;
     let rest = rest.split('#').next().unwrap_or("");
-    if scheme.eq_ignore_ascii_case("ytm-rs") {
+    if scheme.eq_ignore_ascii_case("ytm-rs") || scheme.eq_ignore_ascii_case("fastube") {
         // `jam/CODE`, `jam/CODE/`, or `jam/?c=CODE`.
         let (path, query) = rest.split_once('?').unwrap_or((rest, ""));
         let path = path.trim_end_matches('/');
@@ -104,7 +104,7 @@ fn pipe_name() -> String {
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
         .collect();
-    format!(r"\\.\pipe\ytm-rs-jam-{user}{}", profile_suffix())
+    format!(r"\\.\pipe\fastube-jam-{user}{}", profile_suffix())
 }
 
 /// Empty, or `-HASH` of a dev profile's `YTM_DATA_DIR`.
@@ -187,7 +187,7 @@ mod unix {
 
     /// The socket and its lock file in `dir`.
     pub(super) fn paths(dir: &Path) -> (PathBuf, PathBuf) {
-        let name = format!("ytm-rs-jam{}", super::profile_suffix());
+        let name = format!("fastube-jam{}", super::profile_suffix());
         (dir.join(format!("{name}.sock")), dir.join(format!("{name}.lock")))
     }
 
@@ -402,16 +402,16 @@ mod win {
         }
     }
 
-    /// Register the `ytm-rs:` URL protocol for this user, pointing at this exe.
+    /// Register the `fastube:` URL protocol for this user, pointing at this exe.
     /// Call only from an installed copy, so dev builds don't take the protocol over.
     pub fn register_protocol() {
         match std::env::current_exe() {
             Ok(exe) => {
-                if let Err(e) = register_at(HKEY_CURRENT_USER, r"Software\Classes\ytm-rs", &exe.to_string_lossy()) {
-                    log::warn!("registering the ytm-rs: protocol: {e}");
+                if let Err(e) = register_at(HKEY_CURRENT_USER, r"Software\Classes\fastube", &exe.to_string_lossy()) {
+                    log::warn!("registering the fastube: protocol: {e}");
                 }
             }
-            Err(e) => log::warn!("registering the ytm-rs: protocol: {e}"),
+            Err(e) => log::warn!("registering the fastube: protocol: {e}"),
         }
     }
 
@@ -432,7 +432,7 @@ mod win {
             }
             .ok()
         };
-        set("", "", "URL:ytm-rs Protocol")?;
+        set("", "", "URL:fastube Protocol")?;
         set("", "URL Protocol", "")?;
         set("DefaultIcon", "", &format!("\"{exe}\",0"))?;
         set(r"shell\open\command", "", &format!("\"{exe}\" \"%1\""))

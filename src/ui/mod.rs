@@ -570,8 +570,6 @@ pub struct App {
     skip_silence: bool,
     high_quality: bool,
     backup_stream: bool,
-    /// Settings › Network › Allow local network scan, which AirPlay speakers need.
-    local_network: bool,
     backup_prompt: BackupPrompt,
     reveal_backup_setting: bool,
     backup_setting_highlight_until: f64,
@@ -725,6 +723,17 @@ pub struct App {
     np_open: bool,
     np_tab: NpTab,
     queue_open: bool,
+    /// The side lyrics panel in the main window (the bar's lyrics button, L).
+    lyrics_open: bool,
+    /// Up next beside the fullscreen lyrics (Q puts it away).
+    fs_queue: bool,
+    /// The jam invite's QR filling the window (click the QR in the devices menu).
+    qr_screen: bool,
+    /// Albums' release years, picked up as album pages come in, for the fullscreen
+    /// song facts.
+    album_years: HashMap<String, String>,
+    /// Albums a year was asked for on, this run.
+    album_year_asked: HashSet<String>,
     /// The side Up next's width, as its left edge was last dragged to.
     queue_w: f32,
     /// Where the queue floats over the page in a narrow window, as last drawn.
@@ -1029,7 +1038,6 @@ impl App {
             skip_silence: get("skip_silence").is_some_and(|v| v == "1"),
             high_quality: get("high_quality").is_none_or(|v| v == "1"),
             backup_stream,
-            local_network: get("local_network").is_some_and(|v| v == "1"),
             backup_prompt: BackupPrompt::default(),
             reveal_backup_setting: false,
             backup_setting_highlight_until: 0.0,
@@ -1168,6 +1176,11 @@ impl App {
             np_open: false,
             np_tab: if get("np_art").is_some_and(|v| v == "1") { NpTab::Art } else { NpTab::Lyrics },
             queue_open: false,
+            lyrics_open: false,
+            fs_queue: true,
+            qr_screen: false,
+            album_years: HashMap::new(),
+            album_year_asked: HashSet::new(),
             queue_w: shell::load_queue_w(get("queue_width")),
             queue_float: None,
             row_drag: None,
@@ -2047,6 +2060,29 @@ impl eframe::App for App {
                     shell::queue_resize_handle(self, &ctx, panel.response.rect, room);
                 }
             }
+            let ly = theme::anim_bool(&ctx, "lyrics-drawer", self.lyrics_open && !self.np_open, 0.25).min(1.0);
+            if ly > 0.01 && screen.width() < 1000.0 {
+                // As Up next in a narrow window: it floats over the page, at its fixed width.
+                let w = shell::QUEUE_W.1;
+                let r = egui::Rect::from_min_size(egui::pos2(screen.right() - w * ly, screen.top()), egui::vec2(w, screen.height() - self.bar_height()));
+                egui::Area::new(egui::Id::unique("lyrics-float")).order(egui::Order::Middle).fixed_pos(r.min).show(&ctx, |ui| {
+                    ui.allocate_rect(r, egui::Sense::click_and_drag());
+                    ui.painter().rect_filled(r, 0.0, theme::panel(0.94));
+                    // Its top is still the window's top: the window moves by it, around the heading.
+                    titlebar::drag_area(ui, egui::Rect::from_min_size(r.min, egui::vec2(r.width(), titlebar::HEIGHT)), "lyrics-float");
+                    let mut inner = ui.new_child(egui::UiBuilder::new().max_rect(r.shrink2(egui::vec2(14.0, 16.0))));
+                    inner.set_clip_rect(r);
+                    shell::lyrics_drawer(self, &mut inner, now);
+                });
+            } else if ly > 0.01 {
+                let room = screen.width() - side_w - shell::QUEUE_PAGE_MIN;
+                let w = shell::QUEUE_W.1.min(room.max(shell::QUEUE_W.0));
+                egui::Panel::right("lyrics").resizable(false)
+                    .exact_size(w * ly)
+                    .frame(egui::Frame::new().fill(theme::panel(0.42)).inner_margin(egui::Margin::symmetric(14, 16)))
+                    .show_separator_line(false)
+                    .show(ui, |ui| shell::lyrics_drawer(self, ui, now));
+            }
             let sheet = app_style.sheet.map_or((Color32::TRANSPARENT, 0), |[a, r]| (theme::glass(a), r as u8));
             egui::CentralPanel::default()
                 .frame(egui::Frame::new().fill(sheet.0).corner_radius(egui::CornerRadius { nw: sheet.1, ne: 0, sw: 0, se: 0 }).inner_margin(egui::Margin { left: 28, right: 0, top: titlebar::top_margin(14, 42.0), bottom: 0 }))
@@ -2110,6 +2146,14 @@ impl eframe::App for App {
             self.restore_art();
         }
         theme::set_mode(&ctx, bar_light);
+        // The jam invite's QR filling the window, over everything but the dialogs.
+        if self.qr_screen {
+            egui::Area::new(egui::Id::unique("jam-qr-screen")).order(egui::Order::Foreground).show(&ctx, |ui| {
+                let r = ui.max_rect();
+                ui.painter().rect_filled(r, 0.0, theme::panel(0.98));
+                jam::qr_screen(self, ui, r);
+            });
+        }
         self.draw_dialog(&ctx);
         palette::show(self, &ctx);
         hotkeys::capture_dialog(self, &ctx);
@@ -2164,7 +2208,7 @@ impl eframe::App for App {
         // in points at this zoom. Everything else in egui's memory starts fresh.
         storage.set_string("egui", format!("(options:(zoom_factor:{:?}))", self.zoom));
         if std::env::var_os("YTM_MUTE").is_none() {
-            storage.set_string("volume", self.audio.own_volume().to_string());
+            storage.set_string("volume", self.audio.volume().to_string());
         }
         let repeat = match self.queue.repeat {
             Repeat::Off => "off",
@@ -2188,7 +2232,6 @@ impl eframe::App for App {
         storage.set_string("skip_silence", b(self.skip_silence));
         storage.set_string("high_quality", b(self.high_quality));
         storage.set_string("backup_stream", b(self.backup_stream));
-        storage.set_string("local_network", b(self.local_network));
         storage.set_string("play_songs", b(self.play_songs));
         storage.set_string("show_video", b(self.show_video));
         storage.set_string("video_quality", self.video_quality.to_string());

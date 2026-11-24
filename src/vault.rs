@@ -9,13 +9,13 @@
 
 use std::path::Path;
 
-const SERVICE: &str = "ytm-rs";
+const SERVICE: &str = "fastube";
 
 /// The credential names for `name`, scoped to the data folder when it isn't the
 /// default one (`YTM_DATA_DIR` dev profiles, tests), so those never share or touch
 /// the real sign-ins.
 fn key(name: &str, data_dir: &Path) -> String {
-    let default = directories::ProjectDirs::from("", "", "ytm-rs").map(|d| d.data_dir().to_path_buf());
+    let default = directories::ProjectDirs::from("", "", "fastube").map(|d| d.data_dir().to_path_buf());
     if default.as_deref() == Some(data_dir) {
         name.to_owned()
     } else {

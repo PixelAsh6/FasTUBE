@@ -175,7 +175,6 @@ fn entries(app: &App) -> Vec<Entry> {
             add(Group::Pages, Command::Go(page), &label, "", glyph);
         }
     }
-    add(Group::Pages, Command::Go(Page::Jam), crate::tr!("nav-listen-together"), "", icon::USERS);
     add(Group::Pages, Command::Go(Page::Transfer), crate::tr!("transfer-title"), "", icon::UPLOAD);
     add(Group::Pages, Command::Go(Page::Settings), crate::tr!("settings-title"), "", icon::SETTINGS);
     let song = app.current().is_some();

@@ -128,6 +128,24 @@ impl App {
         self.lists.get(id)
     }
 
+    /// The album's release year, from a kept copy, else asked for once; the answer's
+    /// year lands in the cache in `responses` like any album's that was visited.
+    pub(super) fn album_year(&mut self, id: Option<&str>) -> Option<String> {
+        let id = id?;
+        if let Some(y) = self.album_years.get(id) {
+            return Some(y.clone());
+        }
+        if let Some(o) = self.opened(id)
+            && let Some(y) = crate::ytm::year_from_subtitle(&o.c.subtitle)
+        {
+            return Some(y);
+        }
+        if self.album_year_asked.insert(id.to_owned()) {
+            self.load_list(id, true, false);
+        }
+        None
+    }
+
     /// More of the kept copy is still coming in, page by page.
     pub(super) fn receiving(&self, id: &str) -> bool {
         self.lists.receiving(id)

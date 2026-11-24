@@ -243,6 +243,12 @@ impl App {
                 }
             }
             Resp::Collection { load, c, more } => {
+                // Any album that lands here feeds the fullscreen song facts' year cache.
+                if c.is_album
+                    && let Some(y) = crate::ytm::year_from_subtitle(&c.subtitle)
+                {
+                    self.album_years.entry(c.id.clone()).or_insert(y);
+                }
                 // Picked rows go by number: they only stand while the rows stay where they are.
                 let id = c.id.clone();
                 let rows = |app: &Self| app.opened(&id).map(|o| o.c.tracks.iter().map(|t| t.id.clone()).collect::<Vec<_>>());

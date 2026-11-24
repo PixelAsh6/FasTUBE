@@ -6,10 +6,12 @@ use std::hash::{Hash, Hasher};
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
-use egui::{Align2, RichText, Sense, Ui, pos2, vec2};
+use egui::{Align2, Color32, Rect, RichText, Sense, Ui, Vec2, pos2, vec2};
+use fast_qr::ECL;
+use fast_qr::qr::QRBuilder;
 
 use super::pages::{divider, page_title, section_label, setting_row, settings_card, toggle};
-use super::widgets::{icon_at, pill};
+use super::widgets::{icon_at, named, pill};
 use super::{Action, App, Page};
 use crate::audio::AudioCmd;
 use crate::jam::{Cmd, Event, Jam, Member, RoomState, Tick};
@@ -801,6 +803,199 @@ fn room(app: &mut App, ui: &mut Ui) {
             }
         }
         ui.add_space(6.0);
+    });
+}
+
+// ------------------------------------------------------------------ devices menu
+
+/// Listen together in the devices menu, under the output devices: a name and Start, then
+/// a code or a pasted invite, while out of a room; the count, the link, the QR, the
+/// people and the host's switches while in one.
+pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
+    let inner = (width - 32.0).max(160.0);
+    if !app.jam.active() {
+        ui.add_space(8.0);
+        dim(ui, crate::tr!("jam-intro"));
+        ui.add_space(8.0);
+        let mut go = false;
+        ui.allocate_ui_with_layout(vec2(inner, 34.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            go |= pill(ui, crate::tr!("jam-start-button"), Some(icon::USERS), true).clicked();
+            ui.add_space(8.0);
+            let hint = app.account_name.clone().unwrap_or_else(|| crate::tr!("jam-guest").to_owned());
+            let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 34.0), Sense::hover());
+            ui.painter().rect_filled(rect, 8.0, theme::glass(0.08));
+            let field = rect.shrink2(vec2(10.0, 3.0));
+            ui.put(
+                field,
+                egui::TextEdit::singleline(&mut app.jam.name)
+                    .hint_text(RichText::new(hint).color(theme::text_faint()))
+                    .font(theme::regular(13.5))
+                    .char_limit(32)
+                    .frame(egui::Frame::NONE)
+                    .align(egui::Align2::LEFT_CENTER)
+                    .desired_width(field.width()),
+            );
+        });
+        if go {
+            start(app);
+        }
+        ui.add_space(8.0);
+        let mut join_now = false;
+        ui.allocate_ui_with_layout(vec2(inner, 34.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            join_now |= pill(ui, crate::tr!("jam-join-button"), None, true).clicked();
+            ui.add_space(8.0);
+            let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 34.0), Sense::hover());
+            ui.painter().rect_filled(rect, 8.0, theme::glass(0.08));
+            let field = rect.shrink2(vec2(10.0, 3.0));
+            let edit = ui.put(
+                field,
+                egui::TextEdit::singleline(&mut app.jam.code_input)
+                    .hint_text(RichText::new(crate::tr!("jam-paste-invite")).color(theme::text_faint()))
+                    .font(theme::regular(13.5))
+                    .char_limit(128)
+                    .frame(egui::Frame::NONE)
+                    .align(egui::Align2::LEFT_CENTER)
+                    .desired_width(field.width()),
+            );
+            if edit.changed() {
+                app.jam.error = None;
+            }
+            join_now |= edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+        });
+        if join_now {
+            let pasted = app.jam.code_input.clone();
+            let code = invite_code(&pasted).unwrap_or(pasted);
+            join(app, &code);
+        }
+        if let Some(e) = &app.jam.error {
+            ui.add_space(6.0);
+            ui.label(RichText::new(e).font(theme::regular(13.0)).color(theme::RED));
+        }
+        ui.add_space(10.0);
+        return;
+    }
+    let code = app.jam.code().map(str::to_owned);
+    let host = app.jam.is_host();
+    ui.add_space(8.0);
+    ui.allocate_ui_with_layout(vec2(inner, 30.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        if pill(ui, if host { crate::tr!("jam-end-button") } else { crate::tr!("jam-leave-button") }, Some(icon::LOG_OUT), false).clicked() {
+            leave(app);
+        }
+        if let Some(code) = &code
+            && pill(ui, crate::tr!("ui-copy-link"), Some(icon::LINK), false).clicked()
+        {
+            app.share_pending = Some(crate::jam::share_link(code));
+            app.toast(crate::tr!("status-link-copied"));
+        }
+        ui.add_space(6.0);
+        if !app.jam.welcomed {
+            super::widgets::loader(ui);
+            ui.add_space(6.0);
+            dim(ui, if app.jam.reconnecting { crate::tr!("jam-reconnecting") } else { crate::tr!("jam-connecting") });
+        } else {
+            dim(ui, &crate::tr!("jam-listening-count", count = app.jam.member_count()));
+        }
+    });
+    // The invite as a QR, clicked to fill the window.
+    if let Some(code) = &code {
+        ui.add_space(8.0);
+        let side = inner.min(232.0);
+        let qr_rect = Rect::from_center_size(pos2(inner / 2.0, ui.cursor().top() + side / 2.0), Vec2::splat(side));
+        let qr = named(ui.interact(qr_rect, ui.scope_id().with("jam-qr"), Sense::click()), crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
+        qr_paint(ui, qr_rect, &crate::jam::share_link(code));
+        if qr.clicked() {
+            app.qr_screen = true;
+        }
+        ui.add_space(side + 12.0);
+    } else {
+        ui.add_space(10.0);
+    }
+    // The people, an initial each, the host crowned.
+    egui::ScrollArea::vertical().max_height(156.0).auto_shrink([false, true]).show(ui, |ui| {
+        for m in &app.jam.members {
+            let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 26.0), Sense::hover());
+            let is_host = m.id == app.jam.host;
+            let r = Rect::from_center_size(pos2(rect.left() + 11.0, rect.center().y), Vec2::splat(18.0));
+            ui.painter().circle_filled(r.center(), 9.0, if is_host { app.accent } else { theme::glass(0.10) });
+            let initial = m.name.chars().next().unwrap_or('?').to_string();
+            ui.painter().text(r.center(), Align2::CENTER_CENTER, initial, theme::semibold(11.0), if is_host { Color32::WHITE } else { theme::text() });
+            if is_host {
+                icon_at(ui, pos2(r.right() + 7.0, r.center().y), icon::CROWN, 11.0, app.accent);
+            }
+            let you = if m.id == app.jam.you { " (you)" } else { "" };
+            ui.painter().text(pos2(rect.left() + 40.0, rect.center().y), Align2::LEFT_CENTER, format!("{}{you}", m.name), theme::semibold(13.0), theme::text());
+        }
+    });
+    // The host's two switches, on one row.
+    if host {
+        ui.add_space(6.0);
+        let (mut queue, mut on) = (app.jam.queue, app.jam.control);
+        ui.horizontal(|ui| {
+            if toggle(ui, &mut queue, crate::tr!("jam-allow-add")).changed() {
+                set_control(app, on, queue);
+            }
+            ui.add_space(14.0);
+            if toggle(ui, &mut on, crate::tr!("jam-allow-control")).changed() {
+                set_control(app, on, queue);
+            }
+        });
+    }
+    ui.add_space(10.0);
+}
+
+/// A room code from what was pasted: the bare code, the share link's `?c=CODE`, or the
+/// scheme link's `jam/CODE`.
+fn invite_code(s: &str) -> Option<String> {
+    s.split(['=', '/', '?']).find_map(crate::jam::normalize_code)
+}
+
+/// The invite's QR: plain modules on a white card, a quiet zone of four modules around.
+fn qr_paint(ui: &mut Ui, rect: Rect, link: &str) {
+    let Ok(qr) = QRBuilder::new(link).ecl(ECL::M).build() else { return };
+    let n = qr.size as f32;
+    if n == 0.0 {
+        return;
+    }
+    let module = rect.width().min(rect.height()) / (n + 8.0);
+    let at = pos2(rect.center().x - module * n / 2.0, rect.center().y - module * n / 2.0);
+    let p = ui.painter();
+    p.rect_filled(rect, 8.0, Color32::WHITE);
+    for y in 0..qr.size {
+        let row = &qr[y];
+        for (x, module_on) in row.iter().enumerate() {
+            if module_on.value() {
+                // Half a point over, so no hairline gaps between modules for a scanner.
+                p.rect_filled(Rect::from_min_size(pos2(at.x + x as f32 * module, at.y + y as f32 * module), Vec2::splat(module + 0.5)), 0.0, Color32::BLACK);
+            }
+        }
+    }
+}
+
+/// The QR filling the window: it on the left, what it is and an Exit on the right.
+pub fn qr_screen(app: &mut App, ui: &mut Ui, rect: Rect) {
+    let Some(code) = app.jam.code().map(str::to_owned) else {
+        app.qr_screen = false;
+        return;
+    };
+    let split = rect.center().x;
+    let side = (rect.height() - 80.0).min(split - 40.0).max(120.0);
+    qr_paint(ui, Rect::from_center_size(pos2(split / 2.0, rect.center().y), Vec2::splat(side)), &crate::jam::share_link(&code));
+    let w = 360.0_f32.min(rect.width() - split - 40.0).max(200.0);
+    let right = Rect::from_center_size(pos2(split + (rect.width() - split) / 2.0, rect.center().y), vec2(w, rect.height() * 0.8));
+    ui.scope_builder(egui::UiBuilder::new().max_rect(right), |ui| {
+        ui.vertical_centered(|ui| {
+            ui.add_space(rect.height() * 0.12);
+            ui.label(RichText::new(crate::tr!("jam-scan-title")).font(theme::bold(26.0)).color(theme::text()));
+            ui.add_space(8.0);
+            let spaced: String = code.chars().map(|c| c.to_string()).collect::<Vec<_>>().join(" ");
+            ui.label(RichText::new(spaced).font(theme::semibold(20.0)).color(theme::text_dim()));
+            ui.add_space(4.0);
+            dim(ui, &crate::tr!("jam-listening-count", count = app.jam.member_count()));
+            ui.add_space(20.0);
+            if pill(ui, crate::tr!("jam-scan-exit"), Some(icon::X), true).clicked() {
+                app.qr_screen = false;
+            }
+        });
     });
 }
 
