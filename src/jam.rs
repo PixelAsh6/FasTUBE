@@ -22,8 +22,9 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::model::Track;
 
-/// The relay. `YTM_JAM_SERVER` overrides it (e.g. `ws://127.0.0.1:8787` for `wrangler dev`).
-const SERVER: &str = "wss://ytm-rs-jam.grapedjuice.workers.dev";
+/// Our relay (deployed from `server/`). `YTM_JAM_SERVER` overrides it (e.g.
+/// `ws://127.0.0.1:8787` for `wrangler dev`).
+const SERVER: &str = "wss://fastube.thelightwolfro.workers.dev";
 
 /// Room codes: no 0/O, 1/I/L, so they survive being read out loud.
 pub const ALPHABET: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";

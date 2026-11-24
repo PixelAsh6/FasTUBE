@@ -1,5 +1,5 @@
 {
-  "name": "fastube-jam",
+  "name": "fastube",
   "main": "build/worker/shim.mjs",
   "compatibility_date": "2026-09-01",
   "workers_dev": true,
