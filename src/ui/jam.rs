@@ -68,6 +68,9 @@ pub struct Session {
     load_started: Option<Instant>,
     /// How long songs take to start here, so they're opened that far ahead.
     load_ms: u64,
+    /// The volume the room was last told about, and when: the host's slider
+    /// broadcasts it, coalesced to stay inside the server's rate limit.
+    vol_sent: Option<(f32, Instant)>,
     /// Steps of the YTM_JAM_SCRIPT dev hook already run.
     script_done: usize,
 }
@@ -264,6 +267,10 @@ pub fn tick(app: &mut App) {
 fn on_event(app: &mut App, e: Event) {
     let s = &mut app.jam;
     match e {
+        // The host's slider moved: follow it here, too (one playback, one volume).
+        Event::Volume(v) => {
+            app.audio.set_volume(v.clamp(0.0, 1.0));
+        }
         Event::Welcome { you, host, control, queue, members } => {
             let rejoin = s.welcomed;
             s.welcomed = true;
@@ -392,6 +399,14 @@ fn host_send(app: &mut App) {
         s.sent_from = app.queue.index.unwrap_or(0).saturating_sub(BEFORE);
         s.sent = Some((tick, now));
         return;
+    }
+    // The group volume follows the host's slider; a change broadcasts, coalesced
+    // to the server's rate limit.
+    let vol = app.audio.volume();
+    let due = s.vol_sent.is_none_or(|(v, at)| (v - vol).abs() > 0.004 && at.elapsed() >= Duration::from_millis(250));
+    if due {
+        conn.broadcast_volume(vol);
+        s.vol_sent = Some((vol, now));
     }
     let Some((sent, at)) = &s.sent else { return };
     // A seek: the position moved away from where it should be.

@@ -193,7 +193,7 @@ impl DurableObject for Room {
         let storage = self.state.storage();
         let Some(mut meta) = storage.get::<Meta>("meta").await? else { return Ok(()) };
         let is_host = meta.host == me.id;
-        if matches!(t.as_str(), "state" | "tick" | "control" | "end") && !is_host {
+        if matches!(t.as_str(), "state" | "tick" | "control" | "end" | "vol") && !is_host {
             return error(&ws, "denied", "only the host can do that");
         }
 
@@ -231,6 +231,12 @@ impl DurableObject for Room {
                 }
                 storage.put("meta", &meta).await?;
                 self.broadcast(&json!({ "t": "control", "on": on, "queue": !meta.no_queue }), None);
+            }
+            "vol" => {
+                let Some(v) = m.get("v").and_then(Value::as_f64) else {
+                    return error(&ws, "bad", "vol needs v: number");
+                };
+                self.broadcast(&json!({ "t": "vol", "v": v }), Some(&ws));
             }
             "end" => {
                 storage.delete_alarm().await?;

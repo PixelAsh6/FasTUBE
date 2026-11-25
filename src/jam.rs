@@ -131,6 +131,8 @@ pub enum Event {
     Members { host: String, members: Vec<Member> },
     /// What guests may do: control playback, add songs.
     Control { on: bool, queue: bool },
+    /// The host's volume moved; everyone follows.
+    Volume(f32),
     /// The host's state; `Instant` is when (locally) playback was at `state.pos`.
     State(RoomState, Instant),
     Tick(Tick, Instant),
@@ -194,6 +196,11 @@ impl Jam {
         self.send(json!({ "t": "handover", "to": to }));
     }
 
+    /// As the host: the slider moved, the room follows.
+    pub fn broadcast_volume(&self, v: f32) {
+        self.send(json!({ "t": "vol", "v": v as f64 }));
+    }
+
     pub fn send_state(&self, s: &RoomState) {
         let mut v = serde_json::to_value(s).unwrap_or_default();
         v["t"] = "state".into();
@@ -251,6 +258,7 @@ enum In {
         #[serde(default = "yes")]
         queue: bool,
     },
+    Volume { v: f64 },
     State(Stamped<RoomState>),
     Tick(Stamped<Tick>),
     Req { from: String, name: String, cmd: Cmd },
@@ -492,6 +500,7 @@ impl Conn {
                         }
                         In::Members { host, members } => self.emit(Event::Members { host, members }),
                         In::Control { on, queue } => self.emit(Event::Control { on, queue }),
+                        In::Volume { v } => self.emit(Event::Volume(v as f32)),
                         In::State(s) => {
                             let at = self.local_instant(s.ts);
                             self.emit(Event::State(s.v, at));
