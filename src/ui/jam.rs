@@ -995,14 +995,15 @@ fn invite_code(s: &str) -> Option<String> {
     s.split(['=', '/', '?']).find_map(crate::jam::normalize_code)
 }
 
-/// The invite's QR: plain modules on a white card, a quiet zone of four modules around.
+/// The invite's QR: plain modules on a white card, a quiet zone of about one percent.
 fn qr_paint(ui: &mut Ui, rect: Rect, link: &str) {
     let Ok(qr) = QRBuilder::new(link).ecl(ECL::M).build() else { return };
     let n = qr.size as f32;
     if n == 0.0 {
         return;
     }
-    let module = rect.width().min(rect.height()) / (n + 8.0);
+    let margin = (rect.width().min(rect.height()) * 0.01).clamp(1.5, 6.0);
+    let module = (rect.width().min(rect.height()) - margin * 2.0) / n;
     let at = pos2(rect.center().x - module * n / 2.0, rect.center().y - module * n / 2.0);
     let p = ui.painter();
     p.rect_filled(rect, 8.0, Color32::WHITE);
