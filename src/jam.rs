@@ -258,6 +258,7 @@ enum In {
         #[serde(default = "yes")]
         queue: bool,
     },
+    #[serde(rename = "vol")]
     Volume { v: f64 },
     State(Stamped<RoomState>),
     Tick(Stamped<Tick>),
