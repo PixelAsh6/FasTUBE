@@ -931,7 +931,7 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     // the rows line up.
     if let Some(code) = &code {
         ui.add_space(8.0);
-        let side = ui.available_width();
+        let side = (ui.available_width() - 2.0 * (ui.available_width() * 0.01).max(2.0)).max(160.0);
         let (qr_rect, qr) = ui.allocate_exact_size(Vec2::splat(side), Sense::click());
         let qr = named(qr, crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
         qr_paint(ui, qr_rect, &crate::jam::share_link(code));
