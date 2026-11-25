@@ -1,0 +1,84 @@
+; Inno Setup script for FasTUBE.
+; Build: cargo build --release, then
+;   iscc installerastube.iss
+; Output: installer\Outputastube-setup-<version>.exe
+; ARM64: cargo build --release --target aarch64-pc-windows-msvc, then
+;   iscc /DArm64 installerastube.iss  ->  fastube-setup-<version>-arm64.exe
+
+#define AppName "FasTUBE"
+; A nightly build passes its own: iscc /DAppVersion=0.2.34-nightly.20261110
+#ifndef AppVersion
+  #define AppVersion "1.0.0"
+#endif
+#define AppExe "fastube.exe"
+#ifdef Arm64
+  #define Arch "arm64"
+  #define Suffix "-arm64"
+  #define BinDir "..\target\aarch64-pc-windows-msvc\release"
+#else
+  #define Arch "x64compatible"
+  #define Suffix ""
+  #define BinDir "..\target\release"
+#endif
+
+[Setup]
+AppId={{7A4C1D92-3E85-4F61-9D2B-8C5A0E7F31B4}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher=grapedjuice
+AppPublisherURL=https://github.com/PixelAsh6/FasTUBE
+AppSupportURL=https://github.com/PixelAsh6/FasTUBE/issues
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+DisableProgramGroupPage=yes
+; Per-user install by default (no UAC prompt); the user can pick all-users instead.
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
+ArchitecturesAllowed={#Arch}
+ArchitecturesInstallIn64BitMode={#Arch}
+MinVersion=10.0
+OutputBaseFilename=fastube-setup-{#AppVersion}{#Suffix}
+Compression=lzma2/ultra
+SolidCompression=yes
+WizardStyle=modern
+SetupIconFile=..\assets\icon\icon.ico
+UninstallDisplayIcon={app}\{#AppExe}
+CloseApplications=yes
+
+#ifdef Arm64
+[Messages]
+; Setup shows this when the processor isn't allowed, and on ARM64 that only happens on an
+; Intel or AMD PC, where the default "doesn't support this version of Windows" misleads (#117).
+WindowsVersionNotSupported=This is the FasTUBE installer for Windows on ARM PCs, and this PC has an Intel or AMD processor.%n%nDownload fastube-setup-{#AppVersion}.exe instead, the one without -arm64 in its name.
+#endif
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Files]
+Source: "{#BinDir}\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
+Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
+
+[Registry]
+; fastube:// links (jam invites). HKA is HKCU for per-user installs, HKLM for all-users.
+; The installed app also re-registers itself under HKCU on launch.
+Root: HKA; Subkey: "Software\Classesastube"; ValueType: string; ValueName: ""; ValueData: "URL:fastube Protocol"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classesastube"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\fastube\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"",0"
+Root: HKA; Subkey: "Software\Classes\fastube\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""
+
+[UninstallDelete]
+; Installers downloaded by the in-app updater.
+Type: filesandordirs; Name: "{userappdata}\fastube\data\updates"
+; The app's own Start menu shortcut on an all-users install, for a custom app icon.
+Type: files; Name: "{userprograms}\{#AppName}\{#AppName}.lnk"
+Type: dirifempty; Name: "{userprograms}\{#AppName}"
+
+[Run]
+Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
