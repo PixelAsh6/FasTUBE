@@ -385,14 +385,14 @@ mod tests {
     #[test]
     fn tooltip_fits_windows() {
         assert_eq!(tooltip(None), "FasTUBE");
-        assert_eq!(tooltip(Some("Song — Artist")), "YT Music\nSong — Artist");
+        assert_eq!(tooltip(Some("Song — Artist")), "FasTUBE\nSong — Artist");
         // Just fits: left as it is.
-        let fits = "a".repeat(127 - 9);
-        assert_eq!(tooltip(Some(&fits)), format!("YT Music\n{fits}"));
-        assert_eq!(tooltip(Some(&"a".repeat(200))), format!("YT Music\n{}…", "a".repeat(117)));
+        let fits = "a".repeat(127 - 8);
+        assert_eq!(tooltip(Some(&fits)), format!("FasTUBE\n{fits}"));
+        assert_eq!(tooltip(Some(&"a".repeat(200))), format!("FasTUBE\n{}…", "a".repeat(118)));
         // Cut between characters, never inside one (an emoji is two UTF-16 ones).
         let emoji = tooltip(Some(&"😀".repeat(100)));
-        assert_eq!(emoji, format!("YT Music\n{}…", "😀".repeat(58)));
+        assert_eq!(emoji, format!("FasTUBE\n{}…", "😀".repeat(58)));
         assert!(emoji.encode_utf16().count() <= 127);
     }
 

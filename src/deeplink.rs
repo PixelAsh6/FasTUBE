@@ -569,7 +569,7 @@ mod tests {
             let _ = RegDeleteTreeW(HKEY_CURRENT_USER, &HSTRING::from(key.as_str()));
             let _ = windows::Win32::System::Registry::RegDeleteKeyW(HKEY_CURRENT_USER, &HSTRING::from(key.as_str()));
         }
-        assert_eq!(results.0, "URL:ytm-rs Protocol");
+        assert_eq!(results.0, "URL:fastube Protocol");
         assert_eq!(results.1, "");
         assert_eq!(results.2, r#""C:\x\ytm-rs.exe",0"#);
         assert_eq!(results.3, r#""C:\x\ytm-rs.exe" "%1""#);
