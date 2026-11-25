@@ -108,7 +108,7 @@ fn main() -> eframe::Result {
             return Ok(());
         }
     }
-    // A jam link (`ytm-rs://jam/CODE` or the https share link): hand it to the running
+    // A jam link (`fastube://jam/CODE` or the https share link): hand it to the running
     // instance if there is one, else join once this one is up. Before `init_logging`,
     // which would truncate the running instance's log file.
     if let Some(code) = deeplink::from_args() {
@@ -215,7 +215,7 @@ fn main() -> eframe::Result {
             theme::follow_system_scheme(wake);
             // Whether song notifications can show here (Windows: a Start menu entry).
             notify::look_up();
-            // Keep `ytm-rs:` links pointing at this copy; dev builds leave it alone
+            // Keep `fastube:` links pointing at this copy; dev builds leave it alone
             // (even with YTM_UPDATE_FORCE).
             if update::installed() && !cfg!(debug_assertions) {
                 deeplink::register_protocol();
@@ -371,8 +371,8 @@ fn init_logging() {
         let dir = data_dir();
         let _ = std::fs::create_dir_all(&dir);
         // The last run's log too: reopening the app after a problem would otherwise wipe it.
-        let _ = std::fs::rename(dir.join("ytm-rs.log"), dir.join("ytm-rs.prev.log"));
-        if let Ok(file) = std::fs::File::create(dir.join("ytm-rs.log")) {
+        let _ = std::fs::rename(dir.join("fastube.log"), dir.join("fastube.prev.log"));
+        if let Ok(file) = std::fs::File::create(dir.join("fastube.log")) {
             builder.target(env_logger::Target::Pipe(Box::new(file)));
         }
     }

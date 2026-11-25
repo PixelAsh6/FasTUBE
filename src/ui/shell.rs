@@ -394,7 +394,7 @@ pub fn sidebar(app: &mut App, ui: &mut Ui) {
         ui.add_space(8.0);
         let logo = app.look().app.top_bar.clone();
         let text_r = if logo.logo_text.is_empty() {
-            ui.label(egui::RichText::new("Music").font(theme::bold(22.0)).color(theme::text())).rect
+            ui.label(egui::RichText::new("FasTUBE").font(theme::bold(22.0)).color(theme::text())).rect
         } else {
             logo_name(ui, &logo, app.accent_color())
         };
@@ -1465,9 +1465,12 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let free = |half: f32| row.right() - 200.0 - speed_w - if song_middle { song_end } else { row.center().x + half + 12.0 };
     let tight = free(141.0) < 174.0 + time_w;
     let half = if tight { 125.0 } else { 141.0 };
-    let compact_vol = free(half) < 174.0 + time_w;
-    let compact_vol = compact_vol || chrome.volume_on_hover || chrome.hide_volume;
-    let show_time = free(half) >= if compact_vol { 36.0 } else { 174.0 } + time_w && !time_under && chrome.time_at != crate::preset::TimeAt::AboveProgress;
+    // Full slider with its percent; short of room, the icon keeps the percent beside it;
+    // truly narrow, the bare icon.
+    let full_vol = free(half) >= 174.0 + time_w && !chrome.volume_on_hover && !chrome.hide_volume;
+    let compact_vol = !full_vol;
+    let show_compact_pct = compact_vol && free(half) >= 82.0 + time_w;
+    let show_time = free(half) >= if compact_vol { 82.0 } else { 174.0 } + time_w && !time_under && chrome.time_at != crate::preset::TimeAt::AboveProgress;
 
     // Left: now playing
     if let Some(t) = &track {
@@ -1787,8 +1790,14 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     // A theme that hides the volume hides only the slider in the bar: the icon and its
     // popup stay.
     let vol = app.audio.volume();
-    let vi = if compact_vol {
-        Rect::from_center_size(pos2(rx - 16.0, cy), Vec2::splat(32.0))
+    let vi = if !full_vol {
+        let vi = Rect::from_center_size(pos2(rx - 16.0, cy), Vec2::splat(32.0));
+        // The percent stays put even on the bare icon.
+        if show_compact_pct {
+            let pct = format!("{}%", (vol * 100.0).round());
+            ui.painter().text(pos2(vi.left() - 6.0, cy), Align2::RIGHT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
+        }
+        vi
     } else {
         let pct_w = 34.0;
         let slider = Rect::from_min_size(pos2(rx - 96.0 - pct_w, cy - 10.0), vec2(90.0, 20.0));
@@ -1828,7 +1837,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
         super::mini::toggle_mute(app, ui);
     }
     if let Some(g) = time_g.filter(|_| show_time) {
-        let gap = if compact_vol { 4.0 } else { 10.0 };
+        let gap = if show_compact_pct { 40.0 } else if compact_vol { 4.0 } else { 10.0 };
         let right = vi.left() - gap;
         let at = pos2(right - g.size().x, cy - g.size().y / 2.0);
         let hit = Rect::from_x_y_ranges(right - time_w..=right, at.y..=at.y + g.size().y);

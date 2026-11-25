@@ -1,49 +1,48 @@
 <div align="center">
-  <img src="assets/icon/icon.png" alt="ytm-rs app icon" width="96">
-  <h1>ytm-rs</h1>
+  <img src="assets/icon/icon.png" alt="FasTUBE app icon" width="96">
+  <h1>FasTUBE</h1>
   <p><strong>YouTube Music in a fast, native desktop app.</strong></p>
   <p>Built in Rust with egui and rodio. No Electron, no browser-based player, and around 130 MB of memory while playing.</p>
 
   <p>
-    <a href="https://github.com/grapedjuice/ytm-rs/releases/latest"><img src="https://img.shields.io/github/v/release/grapedjuice/ytm-rs?style=flat-square&color=ff4e45" alt="Latest release"></a>
-    <a href="https://github.com/grapedjuice/ytm-rs/releases"><img src="https://img.shields.io/github/downloads/grapedjuice/ytm-rs/total?style=flat-square&color=ff4e45" alt="Downloads"></a>
+    <a href="https://github.com/PixelAsh6/FasTUBE/releases/latest"><img src="https://img.shields.io/github/v/release/PixelAsh6/FasTUBE?style=flat-square&color=ff4e45" alt="Latest release"></a>
+    <a href="https://github.com/PixelAsh6/FasTUBE/releases"><img src="https://img.shields.io/github/downloads/PixelAsh6/FasTUBE/total?style=flat-square&color=ff4e45" alt="Downloads"></a>
     <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-333?style=flat-square" alt="Platforms">
-    <a href="LICENSE"><img src="https://img.shields.io/github/license/grapedjuice/ytm-rs?style=flat-square&color=333" alt="License: GPL-3.0"></a>
-    <a href="https://ko-fi.com/grapedjuice"><img src="https://img.shields.io/badge/Ko--fi-support-ff4e45?style=flat-square&logo=kofi&logoColor=white" alt="Support on Ko-fi"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/PixelAsh6/FasTUBE?style=flat-square&color=333" alt="License: GPL-3.0"></a>
     <a href="https://discord.gg/wj9ycNgHV6"><img src="https://img.shields.io/badge/Discord-join-5865f2?style=flat-square&logo=discord&logoColor=white" alt="Join the Discord"></a>
   </p>
 
   <p>
-    <a href="https://grapedjuice.github.io/ytm-rs/">Website</a> ·
-    <a href="https://github.com/grapedjuice/ytm-rs/releases/latest">Download</a> ·
+    <a href="https://pixelash6.github.io/FasTUBE/">Website</a> ·
+    <a href="https://github.com/PixelAsh6/FasTUBE/releases/latest">Download</a> ·
     <a href="#features">Features</a> ·
     <a href="#installation">Installation</a> ·
     <a href="#building-from-source">Build from source</a> ·
-    <a href="https://github.com/grapedjuice/ytm-rs/discussions">Discussions</a> ·
+    <a href="https://github.com/PixelAsh6/FasTUBE/discussions">Discussions</a> ·
     <a href="https://discord.gg/wj9ycNgHV6">Discord</a>
   </p>
 </div>
 
 <p align="center">
-  <img src="docs/readme/v2/hero.jpg" alt="ytm-rs playing Espresso by Sabrina Carpenter with synced lyrics in the Apple Music theme, in front of the Home page, with the mini player floating over both" width="100%">
+  <img src="docs/readme/v2/hero.jpg" alt="FasTUBE playing Espresso by Sabrina Carpenter with synced lyrics in the Apple Music theme, in front of the Home page, with the mini player floating over both" width="100%">
 </p>
 
-## Why ytm-rs
+## Why FasTUBE
 
-Most YouTube Music desktop apps are the website running in a hidden browser. ytm-rs draws everything itself, so it starts quickly, stays light and leaves your memory for everything else.
+Most YouTube Music desktop apps are the website running in a hidden browser. FasTUBE draws everything itself, so it starts quickly, stays light and leaves your memory for everything else.
 
-| | ytm-rs | YouTube Music in Chrome | Pear Desktop |
+| | FasTUBE | YouTube Music in Chrome | Pear Desktop |
 | --- | --- | --- | --- |
 | Memory with a song playing | **~130 MB** | 496 MB | 638 MB |
 | Windows download | **11 MB** | – | 107 MB |
 | Installed size | **36 MB** | – | 397 MB |
 | Runs a web browser inside | No | Yes | Yes |
 
-<sub>Memory with a song playing on the same Windows 11 PC: ytm-rs 0.3.0, Chrome 155 with one tab and Pear Desktop 3.12.0. Sizes: ytm-rs 0.3.0 and Pear Desktop 3.12.0.</sub>
+<sub>Memory with a song playing on the same Windows 11 PC: FasTUBE 0.3.0, Chrome 155 with one tab and Pear Desktop 3.12.0. Sizes: FasTUBE 0.3.0 and Pear Desktop 3.12.0.</sub>
 
 ## Table of contents
 
-- [Why ytm-rs](#why-ytm-rs)
+- [Why FasTUBE](#why-FasTUBE)
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
@@ -72,12 +71,12 @@ Most YouTube Music desktop apps are the website running in a hidden browser. ytm
 **Lyrics and looks**
 - **Karaoke lyrics:** word-by-word lyrics drawn the way the Better Lyrics extension draws them, from every Better Lyrics source, with automatic fallback, romanization, translations and per-song timing offsets.
 - **Animated background:** the album art drifts and pulses with the music behind everything. Go full-screen, or hide the lyrics to see just the artwork.
-- **30 themes:** 27 rebuilt from the [Better Lyrics community themes](https://github.com/better-lyrics/themes), such as Apple Music, Spicy, Spinning Record, reCover and Material 3, plus the app's own ytm-rs and Classic looks and Fluent, in the style of Windows 11. Each one restyles the whole app, in light or dark mode, with real frosted glass where the theme has it. Use any bundled or installed font.
+- **30 themes:** 27 rebuilt from the [Better Lyrics community themes](https://github.com/better-lyrics/themes), such as Apple Music, Spicy, Spinning Record, reCover and Material 3, plus the app's own FasTUBE and Classic looks and Fluent, in the style of Windows 11. Each one restyles the whole app, in light or dark mode, with real frosted glass where the theme has it. Use any bundled or installed font.
 - **Your colours:** the accent can follow the theme or your system, or be any colour you pick. A `theme.conf` file can set every colour in the app, for tools like wallust and pywal to write. Zoom makes everything bigger or smaller.
 
 **Together and across services**
 - **Listen together:** start a jam, share the code or link, and up to 16 people hear the same song at the same moment. The host decides whether guests can add songs or control playback.
-- **Transfer from Spotify:** bring playlists and Liked Songs over to YouTube Music in the background. ytm-rs asks you when it isn't sure about a match and picks up where it left off if interrupted.
+- **Transfer from Spotify:** bring playlists and Liked Songs over to YouTube Music in the background. FasTUBE asks you when it isn't sure about a match and picks up where it left off if interrupted.
 - **Last.fm, ListenBrainz and Discord:** scrobbling and Rich Presence.
 
 **Desktop**
@@ -93,7 +92,7 @@ Most YouTube Music desktop apps are the website running in a hidden browser. ytm
 ## Screenshots
 
 <p align="center">
-  <img src="docs/readme/v2/themes-grid.jpg" alt="Six of the 30 themes in Now playing: ytm-rs, Apple Music, Material 3, Spicy, Spinning Record and reCover, each with synced lyrics" width="100%">
+  <img src="docs/readme/v2/themes-grid.jpg" alt="Six of the 30 themes in Now playing: FasTUBE, Apple Music, Material 3, Spicy, Spinning Record and reCover, each with synced lyrics" width="100%">
 </p>
 
 <p align="center">
@@ -102,28 +101,28 @@ Most YouTube Music desktop apps are the website running in a hidden browser. ytm
 
 ## Installation
 
-Downloads for every platform are on the [latest release](https://github.com/grapedjuice/ytm-rs/releases/latest). Once installed, ytm-rs keeps itself up to date; you can turn this off, or switch to nightly builds, in **Settings › About › Updates**.
+Downloads for every platform are on the [latest release](https://github.com/PixelAsh6/FasTUBE/releases/latest). Once installed, FasTUBE keeps itself up to date; you can turn this off, or switch to nightly builds, in **Settings › About › Updates**.
 
-Update checks use GitHub's API, which allows 60 requests an hour without a token, shared by everyone on your IP address. Behind a busy VPN, proxy or shared network, that can run out. If Settings says GitHub is limiting update checks, create a [personal access token](https://github.com/settings/personal-access-tokens/new) (it needs no permissions; public repositories only) and set it as the `YTM_GITHUB_TOKEN` environment variable. ytm-rs sends it only to `api.github.com`.
+Update checks use GitHub's API, which allows 60 requests an hour without a token, shared by everyone on your IP address. Behind a busy VPN, proxy or shared network, that can run out. If Settings says GitHub is limiting update checks, create a [personal access token](https://github.com/settings/personal-access-tokens/new) (it needs no permissions; public repositories only) and set it as the `YTM_GITHUB_TOKEN` environment variable. FasTUBE sends it only to `api.github.com`.
 
-ytm-rs collects nothing about you; see [Privacy](PRIVACY.md) for every service it talks to and why.
+FasTUBE collects nothing about you; see [Privacy](PRIVACY.md) for every service it talks to and why.
 
 <details open>
 <summary><b>Windows</b></summary>
 
-Download `ytm-rs-setup-<version>.exe` and run it. Most PCs (Intel or AMD) need this one. The `-arm64` files are only for Windows on ARM PCs, such as Snapdragon laptops, and won't run on any other PC. It installs for the current user without administrator access, and adds a Start menu shortcut and an uninstall entry in Windows Settings.
+Download `FasTUBE-setup-<version>.exe` and run it. Most PCs (Intel or AMD) need this one. The `-arm64` files are only for Windows on ARM PCs, such as Snapdragon laptops, and won't run on any other PC. It installs for the current user without administrator access, and adds a Start menu shortcut and an uninstall entry in Windows Settings.
 
 </details>
 
 <details>
 <summary><b>macOS</b></summary>
 
-Download `ytm-rs-setup-<version>-macos-aarch64.dmg` (Apple silicon) or `-macos-x86_64.dmg` (Intel), open it, and drag **ytm-rs** to Applications. Requires macOS 11 or later.
+Download `FasTUBE-setup-<version>-macos-aarch64.dmg` (Apple silicon) or `-macos-x86_64.dmg` (Intel), open it, and drag **FasTUBE** to Applications. Requires macOS 11 or later.
 
 The app isn't notarized, so the first time, right-click it and pick **Open**, or run:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/ytm-rs.app
+xattr -dr com.apple.quarantine /Applications/FasTUBE.app
 ```
 
 Sign-ins are kept in your login Keychain. Jam links don't open the app on macOS yet; type the code on the **Listen together** page instead.
@@ -134,16 +133,16 @@ Sign-ins are kept in your login Keychain. Jam links don't open the app on macOS 
 <summary><b>Linux</b></summary>
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/grapedjuice/ytm-rs/main/linux/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/PixelAsh6/FasTUBE/main/linux/install.sh | sh
 ```
 
-This installs ytm-rs for your user (no root) in `~/.local/lib/ytm-rs`, with a `ytm-rs` command and an app menu entry. If WebKitGTK, other required libraries or desktop-file-utils (which lets the browser open jam links in the app) are missing, it installs them too (that step asks for your password). You can also download `ytm-rs-<version>-linux-x86_64.tar.gz`, extract it and run `./install.sh`.
+This installs FasTUBE for your user (no root) in `~/.local/lib/FasTUBE`, with a `FasTUBE` command and an app menu entry. If WebKitGTK, other required libraries or desktop-file-utils (which lets the browser open jam links in the app) are missing, it installs them too (that step asks for your password). You can also download `FasTUBE-<version>-linux-x86_64.tar.gz`, extract it and run `./install.sh`.
 
-On Debian, Ubuntu and their derivatives you can instead download `ytm-rs_<version>_amd64.deb` and open it, or run `sudo apt install ./ytm-rs_<version>_amd64.deb`. It doesn't update itself: when a new version is out, the app says so and links to the new `.deb`, which installs over the old one. To uninstall it, run `sudo apt remove ytm-rs`.
+On Debian, Ubuntu and their derivatives you can instead download `FasTUBE_<version>_amd64.deb` and open it, or run `sudo apt install ./FasTUBE_<version>_amd64.deb`. It doesn't update itself: when a new version is out, the app says so and links to the new `.deb`, which installs over the old one. To uninstall it, run `sudo apt remove FasTUBE`.
 
-On Arch Linux and its derivatives you can instead download `ytm-rs-<version>-1-x86_64.pkg.tar.zst` and run `sudo pacman -U ./ytm-rs-<version>-1-x86_64.pkg.tar.zst`, which also installs the libraries it needs. It doesn't update itself either: when a new version is out, the app says so and links to the new package, which installs over the old one the same way. To uninstall it, run `sudo pacman -R ytm-rs`.
+On Arch Linux and its derivatives you can instead download `FasTUBE-<version>-1-x86_64.pkg.tar.zst` and run `sudo pacman -U ./FasTUBE-<version>-1-x86_64.pkg.tar.zst`, which also installs the libraries it needs. It doesn't update itself either: when a new version is out, the app says so and links to the new package, which installs over the old one the same way. To uninstall it, run `sudo pacman -R FasTUBE`.
 
-Sign-ins are kept in your keyring (GNOME Keyring or KWallet). To uninstall, run `~/.local/lib/ytm-rs/install.sh --uninstall`.
+Sign-ins are kept in your keyring (GNOME Keyring or KWallet). To uninstall, run `~/.local/lib/FasTUBE/install.sh --uninstall`.
 
 </details>
 
@@ -154,9 +153,9 @@ Every platform has a portable download that keeps its settings in a `data` folde
 
 | Platform | File | How to run |
 | --- | --- | --- |
-| Windows | `ytm-rs-portable-<version>.zip`, or `-arm64.zip` only on a Windows on ARM PC | Unzip anywhere and run `ytm-rs.exe`. It stays portable while `portable.txt` is beside it. |
-| macOS | `ytm-rs-portable-<version>-macos-aarch64.zip` or `-macos-x86_64.zip` | Unzip, run `xattr -dr com.apple.quarantine` on the folder, then open `ytm-rs.app`. Without that step macOS runs it from a read-only copy and it uses the normal data location. |
-| Linux | `ytm-rs-portable-<version>-linux-x86_64.tar.gz` | Extract anywhere and run `./ytm-rs`. |
+| Windows | `FasTUBE-portable-<version>.zip`, or `-arm64.zip` only on a Windows on ARM PC | Unzip anywhere and run `FasTUBE.exe`. It stays portable while `portable.txt` is beside it. |
+| macOS | `FasTUBE-portable-<version>-macos-aarch64.zip` or `-macos-x86_64.zip` | Unzip, run `xattr -dr com.apple.quarantine` on the folder, then open `FasTUBE.app`. Without that step macOS runs it from a read-only copy and it uses the normal data location. |
+| Linux | `FasTUBE-portable-<version>-linux-x86_64.tar.gz` | Extract anywhere and run `./FasTUBE`. |
 
 Sign-ins are still kept by the system (Credential Manager, Keychain or your keyring), so on another computer you sign in again. Opening jam links needs the installed app; in the portable one, type the code on the **Listen together** page.
 
@@ -168,10 +167,10 @@ Sign-ins are still kept by the system (Credential Manager, Keychain or your keyr
 | --- | --- |
 | **Sign in** | **Settings › Account › Sign in with Google.** Unlocks your feed, library, likes and history. Browsing and search work without it. If your account has more than one YouTube channel, pick one there too. |
 | **Listen together** | Click **Listen together** in the sidebar, start a jam and share the code or link. Songs guests add play next, marked with who added them, up to 5 waiting per guest. |
-| **Transfer from Spotify** | **Settings › General › Transfer from Spotify**, then sign in to Spotify to pick a playlist or Liked Songs, or paste a public playlist link without signing in. Matches ytm-rs isn't sure about come to you for review before it creates a private playlist. |
+| **Transfer from Spotify** | **Settings › General › Transfer from Spotify**, then sign in to Spotify to pick a playlist or Liked Songs, or paste a public playlist link without signing in. Matches FasTUBE isn't sure about come to you for review before it creates a private playlist. |
 | **Upload music** | **Library › Uploads › Upload music**, or drop MP3, M4A, FLAC, OGG or WMA files on the window. Title, artist, album and cover come from the file's tags. |
-| **Download songs** | Open a song's menu and click **Download**. Files go to `Music\ytm-rs`; change this, the lyrics saved in the file and per-album or per-playlist folders in **Settings › General › Downloads**. |
-| **Scrobble to Last.fm** | **Settings › Connections**, click **Connect** next to Last.fm, then allow ytm-rs in your browser. Songs scrobble after half their length or four minutes. |
+| **Download songs** | Open a song's menu and click **Download**. Files go to `Music\FasTUBE`; change this, the lyrics saved in the file and per-album or per-playlist folders in **Settings › General › Downloads**. |
+| **Scrobble to Last.fm** | **Settings › Connections**, click **Connect** next to Last.fm, then allow FasTUBE in your browser. Songs scrobble after half their length or four minutes. |
 | **Send listens to ListenBrainz** | Copy your user token from [listenbrainz.org/settings](https://listenbrainz.org/settings/), then in **Settings › Connections** paste it under ListenBrainz and click **Connect**. Songs count after half their length or four minutes. |
 | **Change the theme** | **Settings › Appearance**, click a theme card. Mode switches between light and dark, and Accent colour sets the highlight colour. |
 | **Shape the sound** | **Settings › Playback** has the equalizer, crossfade and volume normalization. |
@@ -182,8 +181,8 @@ Sign-ins are still kept by the system (Credential Manager, Keychain or your keyr
 You need the [Rust toolchain](https://rustup.rs/).
 
 ```sh
-git clone https://github.com/grapedjuice/ytm-rs.git
-cd ytm-rs
+git clone https://github.com/PixelAsh6/FasTUBE.git
+cd FasTUBE
 ```
 
 <details open>
@@ -195,7 +194,7 @@ Install the MSVC C++ build tools, then:
 cargo build --release
 ```
 
-The app is at `target\release\ytm-rs.exe`.
+The app is at `target\release\FasTUBE.exe`.
 
 </details>
 
@@ -208,7 +207,7 @@ sudo apt install build-essential pkg-config libssl-dev libasound2-dev libgtk-3-d
 cargo build --release
 ```
 
-The app is at `target/release/ytm-rs`.
+The app is at `target/release/FasTUBE`.
 
 </details>
 
@@ -219,10 +218,10 @@ Install the Xcode command line tools (`xcode-select --install`), then build and 
 
 ```sh
 cargo build --release
-sh macos/bundle.sh target/release/ytm-rs "$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)" target/release
+sh macos/bundle.sh target/release/FasTUBE "$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)" target/release
 ```
 
-The app is at `target/release/ytm-rs.app`.
+The app is at `target/release/FasTUBE.app`.
 
 </details>
 
@@ -235,18 +234,18 @@ The relay in `server/` is a separate Cloudflare Worker, also in Rust ([workers-r
 - The interface and audio playback are native. Google and Spotify sign-in and lyrics verification open temporary system webview windows (WebView2 on Windows).
 - Lyrics come from the providers Better Lyrics uses (Better Lyrics, Unison, Musixmatch, LRCLib and others), so availability depends on the track. Translations come from the lyrics when included, otherwise from Unison or Google Translate; machine translations and romanization can be rough.
 - The first song after launch can take about 5 seconds to start while the app prepares YouTube's player. After that, songs start instantly.
-- Premium-only and age-restricted songs play through your signed-in account. With YouTube Premium they play natively; without it, age-restricted songs fall back to `yt-dlp`, which uses Node.js. If Node.js isn't installed, ytm-rs downloads it once (about 35 MB) the first time it's needed.
+- Premium-only and age-restricted songs play through your signed-in account. With YouTube Premium they play natively; without it, age-restricted songs fall back to `yt-dlp`, which uses Node.js. If Node.js isn't installed, FasTUBE downloads it once (about 35 MB) the first time it's needed.
 - No audio goes through the Listen together relay. It only passes along what's playing and where; every listener streams the song from YouTube Music themselves.
 - Themes are native translations of CSS themes, so some details differ from the originals. Fonts that can't be redistributed (SF Pro, Spotify's) are replaced with the closest open fonts.
-- ytm-rs is an unofficial client. Changes to YouTube Music or third-party services can affect playback, sign-in or lyrics.
+- FasTUBE is an unofficial client. Changes to YouTube Music or third-party services can affect playback, sign-in or lyrics.
 
 ## Contributing
 
-Found a bug or have an idea? [Open an issue](https://github.com/grapedjuice/ytm-rs/issues). Questions, or a setup to show off? Head to [Discussions](https://github.com/grapedjuice/ytm-rs/discussions), or chat with us on [Discord](https://discord.gg/wj9ycNgHV6). Pull requests are welcome: see [Contributing to ytm-rs](CONTRIBUTING.md) for how. So are translations: see [Translating ytm-rs](TRANSLATING.md).
+Found a bug or have an idea? [Open an issue](https://github.com/PixelAsh6/FasTUBE/issues). Questions, or a setup to show off? Head to [Discussions](https://github.com/PixelAsh6/FasTUBE/discussions), or chat with us on [Discord](https://discord.gg/wj9ycNgHV6). Pull requests are welcome: see [Contributing to FasTUBE](CONTRIBUTING.md) for how. So are translations: see [Translating FasTUBE](TRANSLATING.md).
 
 ## License
 
-ytm-rs is licensed under [GPL-3.0](LICENSE).
+FasTUBE is licensed under [GPL-3.0](LICENSE).
 
 ## Acknowledgements
 
@@ -260,17 +259,17 @@ ytm-rs is licensed under [GPL-3.0](LICENSE).
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=grapedjuice%2Fytm-rs&type=date&legend=bottom-right">
+<a href="https://www.star-history.com/?repos=PixelAsh6%2FFasTUBE&type=date&legend=bottom-right">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=grapedjuice/ytm-rs&type=date&theme=dark&legend=bottom-right" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=grapedjuice/ytm-rs&type=date&legend=bottom-right" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=grapedjuice/ytm-rs&type=date&legend=bottom-right" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=PixelAsh6/FasTUBE&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=PixelAsh6/FasTUBE&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=PixelAsh6/FasTUBE&type=date&legend=bottom-right" />
  </picture>
 </a>
 
 ## Contributors
 
-Thanks to everyone who has sent code, features and fixes to ytm-rs.
+Thanks to everyone who has sent code, features and fixes to FasTUBE.
 
 <p>
   <a href="https://github.com/grapedjuice"><img src="https://github.com/grapedjuice.png?size=96" width="48" height="48" alt="grapedjuice" title="grapedjuice" /></a>
@@ -294,4 +293,4 @@ Thanks to everyone who has sent code, features and fixes to ytm-rs.
   <a href="https://github.com/kevdevrev"><img src="https://github.com/kevdevrev.png?size=96" width="48" height="48" alt="kevdevrev" title="kevdevrev" /></a>
 </p>
 
-See everyone on the [contributors page](https://github.com/grapedjuice/ytm-rs/graphs/contributors).
+See everyone on the [contributors page](https://github.com/PixelAsh6/FasTUBE/graphs/contributors).

@@ -1,10 +1,10 @@
 [package]
-name = "ytm-rs"
+name = "fastube"
 version = "2.0.2"
 edition = "2024"
 license = "GPL-3.0-only"
-repository = "https://github.com/grapedjuice/ytm-rs"
-description = "Native YouTube Music client"
+repository = "https://github.com/PixelAsh6/FasTUBE"
+description = "FasTUBE: a fast, native YouTube Music desktop player"
 
 [dependencies]
 anyhow = "1.0.104"

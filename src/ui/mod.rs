@@ -2148,7 +2148,7 @@ impl eframe::App for App {
         theme::set_mode(&ctx, bar_light);
         // The jam invite's QR filling the window, over everything but the dialogs.
         if self.qr_screen {
-            egui::Area::new(egui::Id::unique("jam-qr-screen")).order(egui::Order::Foreground).show(&ctx, |ui| {
+            egui::Area::new(egui::Id::unique("jam-qr-screen")).order(egui::Order::Foreground).fixed_pos(egui::pos2(0.0, 0.0)).show(&ctx, |ui| {
                 let r = ui.max_rect();
                 ui.painter().rect_filled(r, 0.0, theme::panel(0.98));
                 jam::qr_screen(self, ui, r);

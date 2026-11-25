@@ -9,7 +9,7 @@
 //! tarball and renames the new binary over itself as it closes. On macOS, the copy
 //! installed from the disk image downloads the new one and puts the app from it in
 //! place of its own as it closes. A copy from the Linux .deb (a `deb.txt` beside the
-//! binary, in /usr/lib/ytm-rs) can't replace itself: it only says a new version is out
+//! binary, in /usr/lib/fastube) can't replace itself: it only says a new version is out
 //! ([`State::Available`]), and the new .deb installs over it. The Arch package (a
 //! `pacman.txt` there instead) does the same with the new package. A Flatpak (which
 //! always has `/.flatpak-info`) only says so too, and is updated through Flatpak. Every platform has a portable build too (a
@@ -55,10 +55,10 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
 
-const LATEST: &str = "https://api.github.com/repos/grapedjuice/ytm-rs/releases/latest";
-const ALL_RELEASES: &str = "https://api.github.com/repos/grapedjuice/ytm-rs/releases";
-const BY_TAG: &str = "https://api.github.com/repos/grapedjuice/ytm-rs/releases/tags/v";
-pub const RELEASES: &str = "https://github.com/grapedjuice/ytm-rs/releases";
+const LATEST: &str = "https://api.github.com/repos/PixelAsh6/FasTUBE/releases/latest";
+const ALL_RELEASES: &str = "https://api.github.com/repos/PixelAsh6/FasTUBE/releases";
+const BY_TAG: &str = "https://api.github.com/repos/PixelAsh6/FasTUBE/releases/tags/v";
+pub const RELEASES: &str = "https://github.com/PixelAsh6/FasTUBE/releases";
 
 /// The first argument of the staged helper (see [`apply_main`]).
 const APPLY_FLAG: &str = "--apply-update";
@@ -78,7 +78,7 @@ pub enum State {
     Checking,
     UpToDate,
     Downloading { version: String, percent: u8 },
-    /// `installer` is the setup exe, or for the portable build the new ytm-rs.exe.
+    /// `installer` is the setup exe, or for the portable build the new fastube.exe.
     Ready { version: String, installer: PathBuf },
     /// A newer version is out, for a copy that can't install it itself (the .deb, the
     /// Arch package, a Flatpak): `url` is its package (for a Flatpak, the release's page,
@@ -185,7 +185,7 @@ pub fn package_step() -> &'static str {
 
 /// On Linux, another copy installed the other way (one from install.sh beside the
 /// .deb's or the Arch package's, or the other way round), which would otherwise be left
-/// behind: the menu and the `ytm-rs` command open the install.sh one. What it's from,
+/// behind: the menu and the `fastube` command open the install.sh one. What it's from,
 /// and the command that removes it.
 pub fn other_copy() -> Option<(&'static str, &'static str)> {
     if !cfg!(target_os = "linux") {
@@ -193,13 +193,13 @@ pub fn other_copy() -> Option<(&'static str, &'static str)> {
     }
     let home = std::env::var_os("HOME").map(PathBuf::from)?;
     if packaged() {
-        home.join(".local/lib/ytm-rs/install.txt").exists().then_some(("install.sh", "~/.local/lib/ytm-rs/install.sh --uninstall"))
+        home.join(".local/lib/fastube/install.txt").exists().then_some(("install.sh", "~/.local/lib/fastube/install.sh --uninstall"))
     } else if !installed() {
         None
-    } else if Path::new("/usr/lib/ytm-rs/deb.txt").exists() {
-        Some(("the .deb", "sudo apt remove ytm-rs"))
+    } else if Path::new("/usr/lib/fastube/deb.txt").exists() {
+        Some(("the .deb", "sudo apt remove fastube"))
     } else {
-        Path::new("/usr/lib/ytm-rs/pacman.txt").exists().then_some(("the Arch package", "sudo pacman -R ytm-rs"))
+        Path::new("/usr/lib/fastube/pacman.txt").exists().then_some(("the Arch package", "sudo pacman -R fastube"))
     }
 }
 
@@ -213,10 +213,10 @@ pub fn deb_version(version: &str) -> String {
 /// a nightly (`0.3.0-nightly.20261111`) is `0.3.0.nightly.20261111`, which pacman puts
 /// after its version too.
 fn pacman_package(version: &str, arch: &str) -> String {
-    format!("ytm-rs-{}-1-{arch}.pkg.tar.zst", version.replace('-', "."))
+    format!("fastube-{}-1-{arch}.pkg.tar.zst", version.replace('-', "."))
 }
 
-/// The `.app` bundle a binary is in (`X.app/Contents/MacOS/ytm-rs`).
+/// The `.app` bundle a binary is in (`X.app/Contents/MacOS/fastube`).
 fn bundle_of(exe: &Path) -> Option<&Path> {
     exe.ancestors().nth(3).filter(|a| a.extension().is_some_and(|x| x == "app"))
 }
@@ -230,11 +230,11 @@ fn asset_name(version: &str) -> String {
     }
     if cfg!(target_os = "linux") && deb() {
         let arch = if arch == "x86_64" { "amd64" } else if arch == "aarch64" { "arm64" } else { arch };
-        return format!("ytm-rs_{}_{arch}.deb", deb_version(version));
+        return format!("fastube_{}_{arch}.deb", deb_version(version));
     }
     if cfg!(target_os = "linux") {
         let kind = if portable { "portable-" } else { "" };
-        return format!("ytm-rs-{kind}{version}-linux-{arch}.tar.gz");
+        return format!("fastube-{kind}{version}-linux-{arch}.tar.gz");
     }
     // ARM64 Windows builds have their own assets; x64 keeps the original names.
     let (suffix, setup) = if cfg!(target_os = "macos") {
@@ -242,7 +242,7 @@ fn asset_name(version: &str) -> String {
     } else {
         (if cfg!(target_arch = "aarch64") { "-arm64" } else { "" }.to_owned(), "exe")
     };
-    if portable { format!("ytm-rs-portable-{version}{suffix}.zip") } else { format!("ytm-rs-setup-{version}{suffix}.{setup}") }
+    if portable { format!("fastube-portable-{version}{suffix}.zip") } else { format!("fastube-setup-{version}{suffix}.{setup}") }
 }
 
 /// The portable build's folder: the download ships a `portable.txt` beside the exe
@@ -376,7 +376,7 @@ pub fn apply_main() -> bool {
         }
         // Even after a failure: the installer rolls back, so the old version is still there.
         // After this helper exits, so the next launch can delete it.
-        let exe = Path::new(dir).join("ytm-rs.exe");
+        let exe = Path::new(dir).join("fastube.exe");
         if relaunch == "1" && exe.exists() {
             start_after_exit(&exe);
         }
@@ -516,7 +516,7 @@ impl Updater {
         None
     }
 
-    /// How many times ytm-rs has been downloaded: every release asset's GitHub download
+    /// How many times fastube has been downloaded: every release asset's GitHub download
     /// count added up (installers, plus the copies the updater fetched). Fetched in the
     /// background the first time it's asked for; `None` until it arrives.
     pub fn downloads(&self) -> Option<u64> {
@@ -674,7 +674,7 @@ impl Updater {
                 }
             }
         }
-        let unpacked = self.dir.join(format!("ytm-rs-{version}"));
+        let unpacked = self.dir.join(format!("fastube-{version}"));
         let ready = if cfg!(target_os = "macos") && !portable {
             open_dmg(&path, &unpacked)?
         } else if portable || cfg!(unix) {
@@ -802,7 +802,7 @@ fn swap_exe(new: &Path, exe: &Path, relaunch: bool) -> bool {
 #[cfg(unix)]
 fn replace_binary(new: &Path, exe: &Path, relaunch: bool) -> bool {
     use std::os::unix::fs::PermissionsExt;
-    let tmp = exe.with_file_name(".ytm-rs.new");
+    let tmp = exe.with_file_name(".fastube.new");
     if std::env::var_os("YTM_UPDATE_DRYRUN").is_some() {
         log::info!("update (dry run): {} over {}", new.display(), exe.display());
         return true;
@@ -828,7 +828,7 @@ fn replace_binary(new: &Path, exe: &Path, relaunch: bool) -> bool {
 #[cfg(target_os = "macos")]
 fn replace_bundle(new: &Path, app: &Path, relaunch: bool) -> bool {
     let parent = app.parent().unwrap_or(Path::new("/"));
-    let (tmp, old) = (parent.join(".ytm-rs.app.new"), parent.join(".ytm-rs.app.old"));
+    let (tmp, old) = (parent.join(".fastube.app.new"), parent.join(".fastube.app.old"));
     if std::env::var_os("YTM_UPDATE_DRYRUN").is_some() {
         log::info!("update (dry run): {} in place of {}", new.display(), app.display());
         return true;
@@ -856,7 +856,7 @@ fn replace_bundle(new: &Path, app: &Path, relaunch: bool) -> bool {
     let _ = std::fs::remove_dir_all(&old);
     log::info!("update: replaced {}", app.display());
     if relaunch {
-        start_after_exit(&app.join("Contents/MacOS/ytm-rs"));
+        start_after_exit(&app.join("Contents/MacOS/fastube"));
     }
     true
 }
@@ -868,9 +868,9 @@ fn open_dmg(dmg: &Path, dir: &Path) -> anyhow::Result<PathBuf> {
     std::fs::create_dir_all(&mnt)?;
     let attached = std::process::Command::new("hdiutil").args(["attach", "-nobrowse", "-readonly", "-noautoopen", "-quiet", "-mountpoint"]).arg(&mnt).arg(dmg).status()?;
     anyhow::ensure!(attached.success(), "couldn't open {}", dmg.display());
-    let copied = std::process::Command::new("ditto").arg(mnt.join("ytm-rs.app")).arg(dir.join("ytm-rs.app")).status();
+    let copied = std::process::Command::new("ditto").arg(mnt.join("fastube.app")).arg(dir.join("fastube.app")).status();
     let _ = std::process::Command::new("hdiutil").args(["detach", "-quiet"]).arg(&mnt).status();
-    let exe = dir.join("ytm-rs.app/Contents/MacOS/ytm-rs");
+    let exe = dir.join("fastube.app/Contents/MacOS/fastube");
     anyhow::ensure!(copied.is_ok_and(|s| s.success()) && exe.exists(), "couldn't copy the app out of {}", dmg.display());
     Ok(exe)
 }
@@ -896,14 +896,14 @@ fn unzip_exe(zip: &Path, dir: &Path) -> anyhow::Result<PathBuf> {
     }
     let status = cmd.status()?;
     #[cfg(windows)]
-    let exe = dir.join("ytm-rs.exe");
+    let exe = dir.join("fastube.exe");
     // Everything is in one top-level folder: the binary, or on macOS the app bundle.
     #[cfg(not(windows))]
     let exe = std::fs::read_dir(dir)?
         .flatten()
-        .flat_map(|e| [e.path().join("ytm-rs"), e.path().join("ytm-rs.app/Contents/MacOS/ytm-rs")])
+        .flat_map(|e| [e.path().join("fastube"), e.path().join("fastube.app/Contents/MacOS/fastube")])
         .find(|p| p.is_file())
-        .unwrap_or_else(|| dir.join("ytm-rs"));
+        .unwrap_or_else(|| dir.join("fastube"));
     anyhow::ensure!(status.success() && exe.exists(), "couldn't unpack {}", zip.display());
     Ok(exe)
 }
@@ -982,7 +982,7 @@ fn rate_limit_wait(status: reqwest::StatusCode, headers: &reqwest::header::Heade
 }
 
 fn client() -> anyhow::Result<reqwest::Client> {
-    Ok(crate::proxy::apply(reqwest::Client::builder()).user_agent(concat!("ytm-rs/", env!("CARGO_PKG_VERSION"))).connect_timeout(std::time::Duration::from_secs(10)).read_timeout(std::time::Duration::from_secs(30)).build()?)
+    Ok(crate::proxy::apply(reqwest::Client::builder()).user_agent(concat!("fastube/", env!("CARGO_PKG_VERSION"))).connect_timeout(std::time::Duration::from_secs(10)).read_timeout(std::time::Duration::from_secs(30)).build()?)
 }
 
 #[cfg(test)]
@@ -1031,7 +1031,7 @@ mod tests {
         assert!(!in_flatpak(&info, false));
         assert!(in_flatpak(&info, true));
         std::fs::write(&info, "[Application]
-name=io.github.grapedjuice.ytm-rs
+name=io.github.PixelAsh6.fastube
 ").unwrap();
         assert!(in_flatpak(&info, false));
         // A folder by that name isn't the file.
@@ -1051,9 +1051,9 @@ name=io.github.grapedjuice.ytm-rs
     /// The names makepkg gives linux/arch.sh's package, which the Arch copy looks for.
     #[test]
     fn pacman_packages() {
-        assert_eq!(pacman_package("0.3.0", "x86_64"), "ytm-rs-0.3.0-1-x86_64.pkg.tar.zst");
-        assert_eq!(pacman_package("0.3.0-nightly.20261111", "x86_64"), "ytm-rs-0.3.0.nightly.20261111-1-x86_64.pkg.tar.zst");
-        assert_eq!(pacman_package("0.3.0-nightly.20261111.2", "x86_64"), "ytm-rs-0.3.0.nightly.20261111.2-1-x86_64.pkg.tar.zst");
+        assert_eq!(pacman_package("0.3.0", "x86_64"), "fastube-0.3.0-1-x86_64.pkg.tar.zst");
+        assert_eq!(pacman_package("0.3.0-nightly.20261111", "x86_64"), "fastube-0.3.0.nightly.20261111-1-x86_64.pkg.tar.zst");
+        assert_eq!(pacman_package("0.3.0-nightly.20261111.2", "x86_64"), "fastube-0.3.0.nightly.20261111.2-1-x86_64.pkg.tar.zst");
     }
 
     #[test]

@@ -1224,11 +1224,16 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
     let mut mui = ui.new_child(egui::UiBuilder::new().max_rect(mid));
     mui.set_clip_rect(mid.intersect(ui.clip_rect()));
     lyrics_panel(app, &mut mui, mid.shrink2(egui::vec2(16.0, 8.0)), now, false, 0.75);
-    // Right: Up next.
+    // Right: Up next, headed like the drawer's.
     if queue_on {
         let q = Rect::from_min_max(pos2(content.right() - queue_w, content.top()), content.max);
         let mut qui = ui.new_child(egui::UiBuilder::new().max_rect(q));
         qui.set_clip_rect(q.intersect(ui.clip_rect()));
+        qui.horizontal(|ui| {
+            ui.add_space(4.0);
+            ui.label(egui::RichText::new(crate::tr!("ui-up-next")).font(theme::bold(18.0)).color(theme::text()));
+        });
+        qui.add_space(6.0);
         super::shell::queue_list(app, &mut qui, "fs");
     }
 }

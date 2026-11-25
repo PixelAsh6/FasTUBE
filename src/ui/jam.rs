@@ -813,8 +813,10 @@ fn room(app: &mut App, ui: &mut Ui) {
 /// people and the host's switches while in one.
 pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     let inner = (width - 32.0).max(160.0);
+    ui.label(egui::RichText::new(crate::tr!("nav-listen-together")).font(theme::bold(14.5)).color(theme::text_dim()));
+    ui.add_space(4.0);
     if !app.jam.active() {
-        ui.add_space(8.0);
+        ui.add_space(4.0);
         dim(ui, crate::tr!("jam-intro"));
         ui.add_space(8.0);
         let mut go = false;
@@ -900,18 +902,18 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     if let Some(code) = &code {
         ui.add_space(8.0);
         let side = inner.min(232.0);
-        let qr_rect = Rect::from_center_size(pos2(inner / 2.0, ui.cursor().top() + side / 2.0), Vec2::splat(side));
-        let qr = named(ui.interact(qr_rect, ui.scope_id().with("jam-qr"), Sense::click()), crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
+        let (qr_rect, qr) = ui.allocate_exact_size(vec2(inner, side), Sense::click());
+        let qr = named(qr, crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
         qr_paint(ui, qr_rect, &crate::jam::share_link(code));
         if qr.clicked() {
             app.qr_screen = true;
         }
-        ui.add_space(side + 12.0);
+        ui.add_space(12.0);
     } else {
         ui.add_space(10.0);
     }
     // The people, an initial each, the host crowned.
-    egui::ScrollArea::vertical().max_height(156.0).auto_shrink([false, true]).show(ui, |ui| {
+    egui::ScrollArea::vertical().id_salt("jam-members").max_height(156.0).auto_shrink([false, true]).show(ui, |ui| {
         for m in &app.jam.members {
             let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 26.0), Sense::hover());
             let is_host = m.id == app.jam.host;

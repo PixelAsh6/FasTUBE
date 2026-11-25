@@ -28,7 +28,7 @@ pub const CLASSIC: &str = "classic";
 
 pub static ALL: &[Variant] = &[
     Variant { id: CLASSIC, name: "Classic", ico: include_bytes!("../assets/icon/icon.ico"), badge: include_bytes!("../site/badge/classic.png") },
-    variant!("official", "YT Music"),
+    variant!("official", "FasTUBE"),
     variant!("smilering", "Smile ring"),
     variant!("gear", "Rust gear"),
     variant!("wave", "Waveform"),
@@ -479,11 +479,11 @@ mod desktop {
 
     use super::Variant;
 
-    const FILE: &str = "ytm-rs.desktop";
+    const FILE: &str = "fastube.desktop";
     /// The icon the entry comes with: the theme's ytm-rs, the classic one.
-    const CLASSIC_ICON: &str = "ytm-rs";
+    const CLASSIC_ICON: &str = "fastube";
     /// Marks a copy of the system's entry as ours, so Classic removes it again.
-    const COPY: &str = "X-ytm-rs-Icon-Copy=true";
+    const COPY: &str = "X-fastube-Icon-Copy=true";
 
     /// How many entries were changed (0 or 1).
     pub fn sync(v: &Variant, data_dir: &Path) -> anyhow::Result<usize> {
@@ -498,7 +498,7 @@ mod desktop {
         let apps = data_home.join("applications");
         let changed = sync_at(icon.as_deref(), &apps, &system, &std::env::current_exe()?)?;
         if changed {
-            // GLib finds the `ytm-rs://` handler in the MIME cache of the entry's own
+            // GLib finds the `fastube://` handler in the MIME cache of the entry's own
             // folder, and a copy here hides the system's entry along with its cache line.
             let _ = std::process::Command::new("update-desktop-database").arg("-q").arg(&apps).status();
         }
@@ -619,7 +619,7 @@ mod desktop {
     mod tests {
         use super::*;
 
-        const ENTRY: &str = "[Desktop Entry]\nType=Application\nName=YT Music\nExec=EXE\nIcon=ytm-rs\nStartupWMClass=ytm-rs\nMimeType=x-scheme-handler/ytm-rs;\n\n[Desktop Action x]\nIcon=other\n";
+        const ENTRY: &str = "[Desktop Entry]\nType=Application\nName=FasTUBE\nExec=EXE\nIcon=fastube\nStartupWMClass=fastube\nMimeType=x-scheme-handler/fastube;\n\n[Desktop Action x]\nIcon=other\n";
 
         fn scratch(name: &str) -> PathBuf {
             let dir = std::env::temp_dir().join(format!("ytm-desktop-{name}-{}", std::process::id()));
@@ -642,7 +642,7 @@ mod desktop {
             assert_eq!(icon_line(&f), "Icon=/d/icons/wave.png");
             assert!(is_copy(&f) && f.ends_with("[Desktop Action x]\nIcon=other\n"));
             // Back again: as it was.
-            assert_eq!(with_icon(&f, "ytm-rs", false), ENTRY);
+            assert_eq!(with_icon(&f, "fastube", false), ENTRY);
             assert_eq!(icon_line(&with_icon("[Desktop Entry]\nName=x\n", "a.png", false)), "Icon=a.png");
         }
 

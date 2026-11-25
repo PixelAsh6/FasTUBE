@@ -80,12 +80,12 @@ struct State {
 static STATE: LazyLock<RwLock<State>> =
     LazyLock::new(|| RwLock::new(State { index: HashMap::new(), file: PathBuf::new(), folder: default_folder(), per_list: false, file_lyrics: FileLyrics::Synced, gone: HashSet::new(), saved: Vec::new() }));
 
-/// Music\ytm-rs.
+/// Musicastube.
 pub fn default_folder() -> PathBuf {
     let base = directories::UserDirs::new()
         .and_then(|u| u.audio_dir().map(Path::to_path_buf).or_else(|| Some(u.home_dir().join("Music"))))
         .unwrap_or_else(|| PathBuf::from("."));
-    base.join("ytm-rs")
+    base.join("fastube")
 }
 
 /// What a downloaded file's lyrics tag holds.

@@ -10,7 +10,7 @@
 #ifndef AppVersion
   #define AppVersion "2.0.2"
 #endif
-#define AppExe "ytm-rs.exe"
+#define AppExe "fastube.exe"
 #ifdef Arm64
   #define Arch "arm64"
   #define Suffix "-arm64"

@@ -128,7 +128,7 @@ fn profile_suffix() -> String {
 fn runtime_dir(xdg: Option<std::ffi::OsString>, tmp: &std::path::Path, uid: u32) -> std::path::PathBuf {
     match xdg.map(std::path::PathBuf::from) {
         Some(dir) if dir.has_root() => dir,
-        _ => tmp.join(format!("ytm-rs-{uid}")),
+        _ => tmp.join(format!("fastube-{uid}")),
     }
 }
 
@@ -494,7 +494,7 @@ mod tests {
         assert_eq!(runtime_dir(Some("/run/user/1000".into()), tmp, 1000), std::path::Path::new("/run/user/1000"));
         // Unset, empty or relative: our own directory in the temp dir, never the working one.
         for xdg in [None, Some("".into()), Some("run".into())] {
-            assert_eq!(runtime_dir(xdg, tmp, 1000), std::path::Path::new("/tmp/ytm-rs-1000"));
+            assert_eq!(runtime_dir(xdg, tmp, 1000), std::path::Path::new("/tmp/fastube-1000"));
         }
     }
 
