@@ -1095,7 +1095,9 @@ pub fn modal_extras(ctx: &egui::Context, id: egui::Id) {
 /// A button's menu, in the theme's look.
 pub fn menu_popup<'a>(resp: &Response) -> egui::Popup<'a> {
     popup_extras(&resp.ctx, egui::Popup::default_response_id(resp));
-    egui::Popup::menu(resp).frame(theme::menu_frame(&resp.ctx.global_style()))
+    // Stays open over a click inside: the device menu's group section updates in
+    // place, and rows that want to close it call `ui.close()` themselves.
+    egui::Popup::menu(resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).frame(theme::menu_frame(&resp.ctx.global_style()))
 }
 
 /// A menu that a right-click anywhere on `resp` opens at the pointer, even over the
