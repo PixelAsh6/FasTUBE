@@ -907,7 +907,7 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     let code = app.jam.code().map(str::to_owned);
     let host = app.jam.is_host();
     ui.add_space(8.0);
-    ui.allocate_ui_with_layout(vec2(inner, 30.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
+    ui.allocate_ui_with_layout(vec2(ui.available_width(), 30.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
         if pill(ui, if host { crate::tr!("jam-end-button") } else { crate::tr!("jam-leave-button") }, Some(icon::LOG_OUT), false).clicked() {
             leave(app);
         }
@@ -919,19 +919,23 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
         }
         ui.add_space(6.0);
         if !app.jam.welcomed {
+            // Connecting: just the spinner, so the row can't overflow; a row that
+            // overflows drags the whole section's left edge with it.
             super::widgets::loader(ui);
-            ui.add_space(6.0);
-            dim(ui, if app.jam.reconnecting { crate::tr!("jam-reconnecting") } else { crate::tr!("jam-connecting") });
         } else {
-            dim(ui, &crate::tr!("jam-listening-count", count = app.jam.member_count()));
+            // The count as a compact chip, an icon and the number: small enough that
+            // the row fits even in the player bar's narrow menu.
+            let (r, _) = ui.allocate_exact_size(vec2(34.0, 22.0), Sense::hover());
+            icon_at(ui, pos2(r.left() + 7.0, r.center().y), icon::USERS, 15.0, theme::text_dim());
+            ui.painter().text(pos2(r.left() + 18.0, r.center().y), Align2::LEFT_CENTER, app.jam.member_count().to_string(), theme::semibold(13.5), theme::text_dim());
         }
     });
-    // The invite as a QR, clicked to fill the window: one square on the section's own
-    // width, measured the way the device rows above measure theirs, so the plate and
-    // the rows line up.
+    // The invite as a QR, clicked to fill the window: one square on the menu's own
+    // width, so the plate lines up with the device rows above; the frame's inset
+    // (6 px, under 2% of the menu) is the padding around it.
     if let Some(code) = &code {
         ui.add_space(8.0);
-        let side = (ui.available_width() - 2.0 * (ui.available_width() * 0.01).max(2.0)).max(160.0);
+        let side = ui.available_width().min(width).max(160.0);
         let (qr_rect, qr) = ui.allocate_exact_size(Vec2::splat(side), Sense::click());
         let qr = named(qr, crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
         qr_paint(ui, qr_rect, &crate::jam::share_link(code));
