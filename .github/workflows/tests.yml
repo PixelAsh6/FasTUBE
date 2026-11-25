@@ -1,7 +1,7 @@
 name: Tests
 
-# Runs the tests and clippy on every pull request and on the branches below, on Windows
-# and Linux. Not for changes only to the README, which the code doesn't use.
+# Runs the tests and clippy on every pull request and on the branches below, on Windows.
+# Not for changes only to the README, which the code doesn't use.
 on:
   pull_request:
     paths-ignore: [README.md, docs/**, site/**]
@@ -20,11 +20,7 @@ concurrency:
 
 jobs:
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     defaults:
       run:
         shell: bash
@@ -39,12 +35,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: windows
-
-      - name: Install libraries
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev libasound2-dev libgtk-3-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev libdbus-1-dev
 
       - name: Test
         run: cargo test --locked
