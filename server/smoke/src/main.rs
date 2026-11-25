@@ -36,6 +36,11 @@ async fn connect(code: &str, create: bool, name: &str) -> R<Ws> {
     Ok(connect_async(url).await?.0)
 }
 
+async fn connect_role(code: &str, role: &str, name: &str) -> R<Ws> {
+    let url = format!("{}/jam/{code}?create=0&role={role}&name={name}&v=1", base());
+    Ok(connect_async(url).await?.0)
+}
+
 async fn send(ws: &mut Ws, v: Value) -> R {
     ws.send(Message::text(v.to_string())).await?;
     Ok(())
@@ -350,6 +355,50 @@ async fn main() -> R {
         }
         expect_error(&mut ws, "rate").await?;
         send(&mut ws, json!({ "t": "end" })).await
+    }.await);
+
+    step!("remote member, handover and volume", async {
+        let code = new_code();
+        let mut host = connect(&code, true, "Host").await?;
+        let w = expect(&mut host, "welcome").await?;
+        let host_id = w["you"].as_str().unwrap().to_owned();
+
+        // A remote joins: the flag rides along in the member list.
+        let mut remote = connect_role(&code, "remote", "Remote").await?;
+        let wr = expect(&mut remote, "welcome").await?;
+        check(wr["members"][1]["remote"] == true, &format!("remote flag on the new member: {wr}"))?;
+        let remote_id = wr["you"].as_str().unwrap().to_owned();
+
+        // Host hears about the member with the flag; itself without it.
+        let m = expect(&mut host, "members").await?;
+        let list = m["members"].as_array().cloned().unwrap_or_default();
+        check(list.len() == 2 && list[1]["remote"] == true, &format!("remote flag broadcast: {m}"))?;
+        check(list[0].get("remote").is_none() || list[0]["remote"] == false, "players carry no flag")?;
+
+        // A remote steers the host's volume with a gated request once control is on.
+        send(&mut host, json!({ "t": "control", "on": true })).await?;
+        expect(&mut host, "control").await?;
+        expect(&mut remote, "control").await?;
+        send(&mut remote, json!({ "t": "req", "cmd": { "k": "vol", "v": 0.5 } })).await?;
+        let req = expect(&mut host, "req").await?;
+        check(req["cmd"]["k"] == "vol" && req["cmd"]["v"] == 0.5, &format!("vol forwarded: {req}"))?;
+
+        // The host hands the room to the remote; the remote learns it is the host.
+        send(&mut host, json!({ "t": "handover", "to": remote_id })).await?;
+        let m = expect(&mut host, "members").await?;
+        check(m["host"] == remote_id, &format!("handover broadcast: {m}"))?;
+        let mh = expect(&mut remote, "members").await?;
+        check(mh["host"] == remote_id, "the new host knows")?;
+
+        // Only the host may hand the room to someone else.
+        let mut g = connect(&code, false, "Late").await?;
+        expect(&mut g, "welcome").await?;
+        send(&mut g, json!({ "t": "handover", "to": host_id })).await?;
+        expect_error(&mut g, "denied").await?;
+
+        send(&mut remote, json!({ "t": "end" })).await?;
+        expect(&mut remote, "ended").await?;
+        Ok::<(), Box<dyn std::error::Error>>(())
     }.await);
 
     if base().starts_with("ws://") {
