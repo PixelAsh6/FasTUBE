@@ -66,6 +66,9 @@ struct Member {
     /// Set once we've processed this socket's departure.
     #[serde(default)]
     gone: bool,
+    /// A `role=remote` member: it steers the room but plays no audio itself.
+    #[serde(default)]
+    remote: bool,
 }
 
 #[durable_object]
@@ -126,6 +129,7 @@ impl DurableObject for Room {
             tokens: BURST,
             last: now,
             gone: false,
+            remote: param("role").is_some_and(|r| r == "remote"),
         };
         // First one in (or back into an emptied room) hosts.
         if members.is_empty() {
@@ -140,7 +144,7 @@ impl DurableObject for Room {
         ws.serialize_attachment(&me)?;
 
         let mut list = member_list(&members);
-        list.push(json!({ "id": me.id, "name": me.name }));
+        list.push(json!({ "id": me.id, "name": me.name, "remote": me.remote }));
         let stored = |s: Option<String>| s.and_then(|s| serde_json::from_str::<Value>(&s).ok());
         send(&ws, &json!({
             "t": "welcome", "you": me.id, "host": meta.host, "control": meta.control, "queue": !meta.no_queue,
@@ -239,12 +243,29 @@ impl DurableObject for Room {
                 }
                 self.report("end", 0).await;
             }
+            "handover" => {
+                let Some(to) = m.get("to").and_then(Value::as_str) else {
+                    return error(&ws, "bad", "handover needs to");
+                };
+                // The host hands the room to someone; a member may also take it over
+                // themselves, which is how "play here" works on another device.
+                if !is_host && to != me.id {
+                    return error(&ws, "denied", "only the host can hand the room over");
+                }
+                if to == meta.host || !self.members(None).iter().any(|(id, _)| id == to) {
+                    return error(&ws, "bad", "no such member to hand over to");
+                }
+                meta.host = to.to_owned();
+                storage.put("meta", &meta).await?;
+                let list = member_list(&self.members(None));
+                self.broadcast(&json!({ "t": "members", "host": meta.host, "members": list }), None);
+            }
             "req" => {
                 let mut cmd = m.remove("cmd").unwrap_or(Value::Null);
                 let Some(kind) = valid_cmd(&mut cmd) else {
                     return error(&ws, "bad", "malformed req");
                 };
-                let gated = matches!(kind, "toggle" | "skip" | "prev" | "seek" | "jump");
+                let gated = matches!(kind, "toggle" | "skip" | "prev" | "seek" | "jump" | "vol");
                 if gated && !meta.control && !is_host {
                     return error(&ws, "denied", "Only the host can control playback");
                 }
@@ -392,7 +413,7 @@ fn error(ws: &WebSocket, code: &str, msg: &str) -> Result<()> {
 }
 
 fn member_list(members: &[(WebSocket, Member)]) -> Vec<Value> {
-    members.iter().map(|(_, m)| json!({ "id": m.id, "name": m.name })).collect()
+    members.iter().map(|(_, m)| json!({ "id": m.id, "name": m.name, "remote": m.remote })).collect()
 }
 
 fn random_id() -> String {
@@ -434,6 +455,7 @@ fn valid_cmd(cmd: &mut Value) -> Option<&str> {
     let ok = match cmd.get("k")?.as_str()? {
         "add" | "next" => cmd.get_mut("track").is_some_and(clean_track),
         "seek" => is_num(cmd.get("pos")),
+        "vol" => is_num(cmd.get("v")),
         "jump" => is_num(cmd.get("index")),
         "toggle" | "skip" | "prev" => true,
         _ => false,

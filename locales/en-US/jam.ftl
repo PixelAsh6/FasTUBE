@@ -36,6 +36,7 @@ jam-leave-button = Leave
 jam-people = People
 jam-host = Host
 jam-listening-count = Listening: { $count }
+jam-play-here = Play here
 jam-paste-invite = Type a code or paste an invite
 jam-scan-title = Scan to join this group
 jam-scan-exit = Exit

@@ -135,7 +135,7 @@ pub fn start(app: &mut App) {
 fn start_with(app: &mut App, code: String) {
     leave(app);
     fresh(app, true);
-    app.jam.conn = Some(Jam::start(&app.backend, code, true, my_name(app)));
+    app.jam.conn = Some(Jam::start(&app.backend, code, true, my_name(app), false));
     // Guests get the host's exact upload: a song version standing in for a music video
     // goes back to the video, from the same point.
     app.play_listed_upload();
@@ -151,7 +151,7 @@ pub fn join(app: &mut App, code: &str) {
     }
     leave(app);
     fresh(app, false);
-    app.jam.conn = Some(Jam::start(&app.backend, code, false, my_name(app)));
+    app.jam.conn = Some(Jam::start(&app.backend, code, false, my_name(app), false));
     app.play_listed_upload();
 }
 
@@ -402,6 +402,7 @@ fn host_request(app: &mut App, from: String, name: String, cmd: Cmd) {
     if !app.jam.is_host() {
         return;
     }
+
     if let Cmd::Add { track } | Cmd::Next { track } = &cmd {
         // The host's setting decides what the jam plays.
         if app.hide_explicit && track.explicit {
@@ -416,6 +417,8 @@ fn host_request(app: &mut App, from: String, name: String, cmd: Cmd) {
         app.jam.owner.insert(track.id.clone(), from);
     }
     match cmd {
+        // A remote steering the room: the volume moves here, where playback is.
+        Cmd::Vol { v } => app.audio.set_volume(v.clamp(0.0, 1.0)),
         Cmd::Add { track } | Cmd::Next { track } if track.id.is_empty() => {}
         Cmd::Add { track } => {
             app.toast(crate::tr!("jam-guest-added", name = name.as_str(), title = track.title.as_str()));
@@ -912,6 +915,15 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     } else {
         ui.add_space(10.0);
     }
+    // Playing elsewhere: this device takes the room over onto itself.
+    if app.jam.guest()
+        && let Some(c) = &app.jam.conn
+    {
+        ui.add_space(6.0);
+        if pill(ui, crate::tr!("jam-play-here"), Some(icon::PLAY), true).clicked() {
+            c.handover(&app.jam.you);
+        }
+    }
     // The people, an initial each, the host crowned.
     egui::ScrollArea::vertical().id_salt("jam-members").max_height(156.0).auto_shrink([false, true]).show(ui, |ui| {
         for m in &app.jam.members {
@@ -925,7 +937,8 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
                 icon_at(ui, pos2(r.right() + 7.0, r.center().y), icon::CROWN, 11.0, app.accent);
             }
             let you = if m.id == app.jam.you { " (you)" } else { "" };
-            ui.painter().text(pos2(rect.left() + 40.0, rect.center().y), Align2::LEFT_CENTER, format!("{}{you}", m.name), theme::semibold(13.0), theme::text());
+            let remote = if m.remote && !is_host { " · remote" } else { "" };
+            ui.painter().text(pos2(rect.left() + 40.0, rect.center().y), Align2::LEFT_CENTER, format!("{}{you}{remote}", m.name), theme::semibold(13.0), theme::text());
         }
     });
     // The host's two switches, on one row.

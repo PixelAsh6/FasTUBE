@@ -17,6 +17,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -62,6 +63,9 @@ pub fn normalize_code(code: &str) -> Option<String> {
 pub struct Member {
     pub id: String,
     pub name: String,
+    /// Steers the room without playing audio (another device of ours).
+    #[serde(default)]
+    pub remote: bool,
 }
 
 /// The host's queue and playback, as sent to guests.
@@ -109,6 +113,8 @@ pub enum Cmd {
     Prev,
     Seek { pos: u64 },
     Jump { index: usize },
+    /// Set the playing device's volume (a remote steering the room).
+    Vol { v: f32 },
 }
 
 impl Cmd {
@@ -164,11 +170,12 @@ impl Jam {
     }
 
     /// Connect to room `code`: `create` starts it (we're the host), otherwise join.
-    pub fn start(backend: &crate::backend::Backend, code: String, create: bool, name: String) -> Jam {
+    /// A `remote` member steers the room and plays no audio itself.
+    pub fn start(backend: &crate::backend::Backend, code: String, create: bool, name: String, remote: bool) -> Jam {
         let (out_tx, out_rx) = mpsc::unbounded_channel();
         let (ev_tx, ev_rx) = unbounded();
         let wake = backend.clone();
-        let task = Conn { code: code.clone(), create, name, events: ev_tx, wake: Arc::new(move || wake.wake()), offset: Arc::new(AtomicI64::new(0)) };
+        let task = Conn { code: code.clone(), create, name, remote, events: ev_tx, wake: Arc::new(move || wake.wake()), offset: Arc::new(AtomicI64::new(0)) };
         backend.spawn(task.run(out_rx));
         Jam { code, out: out_tx, events: ev_rx }
     }
@@ -179,6 +186,12 @@ impl Jam {
 
     fn send(&self, v: serde_json::Value) {
         let _ = self.out.send(Out::Text(v.to_string()));
+    }
+
+    /// Ask for the room to move to `to` (as the host), or to ourselves (any member:
+    /// the "play here" of another device).
+    pub fn handover(&self, to: &str) {
+        self.send(json!({ "t": "handover", "to": to }));
     }
 
     pub fn send_state(&self, s: &RoomState) {
@@ -325,6 +338,8 @@ struct Conn {
     code: String,
     create: bool,
     name: String,
+    /// A role=remote member: steers the room, plays no audio.
+    remote: bool,
     events: Sender<Event>,
     wake: Arc<dyn Fn() + Send + Sync>,
     /// Server clock minus ours, in ms.
@@ -386,7 +401,11 @@ impl Conn {
     async fn session(&mut self, out: &mut mpsc::UnboundedReceiver<Out>) -> End {
         let base = std::env::var("YTM_JAM_SERVER").unwrap_or_else(|_| SERVER.to_owned());
         let create = if self.create { "1" } else { "0" };
-        let url = url::Url::parse_with_params(&format!("{}/jam/{}", base.trim_end_matches('/'), self.code), [("create", create), ("name", &self.name), ("v", "1")]);
+        let mut params = vec![("create", create.to_owned()), ("name", self.name.clone()), ("v", "1".to_owned())];
+        if self.remote {
+            params.push(("role", "remote".to_owned()));
+        }
+        let url = url::Url::parse_with_params(&format!("{}/jam/{}", base.trim_end_matches('/'), self.code), &params);
         // Through the proxy setting, like everything else.
         let connect = async {
             let u = url?;
