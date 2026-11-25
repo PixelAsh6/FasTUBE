@@ -392,7 +392,7 @@ mod tests {
         assert_eq!(tooltip(Some(&"a".repeat(200))), format!("FasTUBE\n{}…", "a".repeat(118)));
         // Cut between characters, never inside one (an emoji is two UTF-16 ones).
         let emoji = tooltip(Some(&"😀".repeat(100)));
-        assert_eq!(emoji, format!("FasTUBE\n{}…", "😀".repeat(58)));
+        assert_eq!(emoji, format!("FasTUBE\n{}…", "😀".repeat(59)));
         assert!(emoji.encode_utf16().count() <= 127);
     }
 
