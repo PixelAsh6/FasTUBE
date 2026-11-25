@@ -926,11 +926,11 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
             dim(ui, &crate::tr!("jam-listening-count", count = app.jam.member_count()));
         }
     });
-    // The invite as a QR, clicked to fill the window.
+    // The invite as a QR, clicked to fill the window: one square, as wide as the
+    // section's other elements, so no wide white margins appear beside it.
     if let Some(code) = &code {
         ui.add_space(8.0);
-        let side = inner.min(232.0);
-        let (qr_rect, qr) = ui.allocate_exact_size(vec2(inner, side), Sense::click());
+        let (qr_rect, qr) = ui.allocate_exact_size(Vec2::splat(inner), Sense::click());
         let qr = named(qr, crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
         qr_paint(ui, qr_rect, &crate::jam::share_link(code));
         if qr.clicked() {
@@ -966,15 +966,21 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
             ui.painter().text(pos2(rect.left() + 40.0, rect.center().y), Align2::LEFT_CENTER, format!("{}{you}{remote}", m.name), theme::semibold(13.0), theme::text());
         }
     });
-    // The host's two switches, on one row.
+    // The host's two switches, each with its label: what guests may do.
     if host {
         ui.add_space(6.0);
         let (mut queue, mut on) = (app.jam.queue, app.jam.control);
         ui.horizontal(|ui| {
+            dim(ui, crate::tr!("jam-allow-add"));
+            ui.add_space(ui.available_width() - 50.0);
             if toggle(ui, &mut queue, crate::tr!("jam-allow-add")).changed() {
                 set_control(app, on, queue);
             }
-            ui.add_space(14.0);
+        });
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            dim(ui, crate::tr!("jam-allow-control"));
+            ui.add_space(ui.available_width() - 50.0);
             if toggle(ui, &mut on, crate::tr!("jam-allow-control")).changed() {
                 set_control(app, on, queue);
             }
