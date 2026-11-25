@@ -37,7 +37,6 @@ ui-save-library = Kitaplığa kaydet
 ui-remove-library = Kitaplıktan kaldır
 ui-like = Beğen
 ui-like-song = Şarkıyı beğen
-ui-dislike-song = Şarkıyı beğenmedim
 ui-unlike = Beğeniyi kaldır
 ui-remove-dislike = Beğenmeyi kaldır
 ui-undo = Geri al

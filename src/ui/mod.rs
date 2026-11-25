@@ -257,7 +257,6 @@ pub enum Action {
     LikeHeard { like: bool, video_id: String, generation: u64 },
     /// Like (or unlike) a selection of songs.
     LikeMany(Vec<Track>, bool),
-    Dislike(Track),
     RemoveLike(Track),
     RemoveDislike(String),
     Share(Target),

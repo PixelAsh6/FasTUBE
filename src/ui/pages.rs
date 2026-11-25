@@ -205,7 +205,7 @@ fn card_row(ui: &mut Ui, id: &str, title: &str, cards: &[Card], acts: &mut Vec<A
     h_scroll(ui, id, nudge, cards.len(), CARD, 18.0, |ui| {
         ui.spacing_mut().item_spacing.x = 18.0;
         for (i, c) in cards.iter().enumerate() {
-            arrive::item(ui, g, 1 + i, 16.0, |ui| card(ui, c, CARD, false, None, acts));
+            arrive::item(ui, g, 1 + i, 16.0, |ui| card(ui, c, CARD, None, acts));
         }
     });
 }
@@ -572,7 +572,7 @@ fn home(app: &mut App, ui: &mut Ui, now: f64) {
                     continue;
                 }
                 let (strap, thumb) = if s.own { (None, None) } else { (s.strapline.as_deref(), s.strap_thumb.as_deref()) };
-                cards_shelf(ui, &app.liked, &mut app.actions, &id, title, strap, thumb, &cards);
+                cards_shelf(ui, &mut app.actions, &id, title, strap, thumb, &cards);
             }
             ShelfKind::Songs { tracks, rows: n } => {
                 let reached_end = song_grid(ui, &rows, &app.liked, &mut app.actions, &id, title, s.strapline.as_deref(), tracks, *n);
@@ -596,15 +596,14 @@ fn home(app: &mut App, ui: &mut Ui, now: f64) {
 
 /// Cards scrolling sideways under a shelf's title.
 #[allow(clippy::too_many_arguments)]
-fn cards_shelf(ui: &mut Ui, liked: &HashSet<String>, acts: &mut Vec<Action>, id: &str, title: &str, strap: Option<&str>, thumb: Option<&str>, cards: &[&Card]) {
+fn cards_shelf(ui: &mut Ui, acts: &mut Vec<Action>, id: &str, title: &str, strap: Option<&str>, thumb: Option<&str>, cards: &[&Card]) {
     let g = arrive::group(ui, id);
     let (l, r) = arrive::item(ui, g, 0, 10.0, |ui| shelf_header(ui, title, strap, thumb, true));
     let nudge = r as i32 - l as i32;
     h_scroll(ui, id, nudge, cards.len(), CARD, 18.0, |ui| {
         ui.spacing_mut().item_spacing.x = 18.0;
         for (i, c) in cards.iter().enumerate() {
-            let is_liked = matches!(&c.target, Target::Song(t) if liked.contains(&t.id));
-            arrive::item(ui, g, 1 + i, 16.0, |ui| card(ui, c, CARD, is_liked, None, acts));
+            arrive::item(ui, g, 1 + i, 16.0, |ui| card(ui, c, CARD, None, acts));
         }
     });
 }
@@ -737,7 +736,7 @@ fn mood(app: &mut App, ui: &mut Ui, params: &str, now: f64) {
             ShelfKind::Cards(cards) => {
                 let cards: Vec<&Card> = cards.iter().filter(|c| !matches!(&c.target, Target::Song(t) if !rows.shows(t))).collect();
                 if !cards.is_empty() {
-                    cards_shelf(ui, &app.liked, &mut app.actions, &id, &s.title, s.strapline.as_deref(), s.strap_thumb.as_deref(), &cards);
+                    cards_shelf(ui, &mut app.actions, &id, &s.title, s.strapline.as_deref(), s.strap_thumb.as_deref(), &cards);
                 }
             }
             ShelfKind::Songs { tracks, rows: n } => {
@@ -801,7 +800,7 @@ fn search(app: &mut App, ui: &mut Ui, q: &str, now: f64) {
     // Top result: the first artist when the query names one, otherwise the first song.
     let top_card = |ui: &mut Ui, acts: &mut Vec<Action>| {
         if let Some(top) = r.artists.first().filter(|a| a.title.eq_ignore_ascii_case(q.trim())) {
-            top_result(ui, top, false, false, acts);
+            top_result(ui, top, false, acts);
         } else if let Some(t) = tracks.first().copied() {
             let c = Card {
                 title: t.title.clone(),
@@ -811,7 +810,7 @@ fn search(app: &mut App, ui: &mut Ui, q: &str, now: f64) {
                 round: false,
                 links: t.artists.clone(),
             };
-            top_result(ui, &c, liked.contains(&t.id), pick, acts);
+            top_result(ui, &c, pick, acts);
         }
     };
     let mut songs = |ui: &mut Ui, acts: &mut Vec<Action>| {
@@ -947,7 +946,7 @@ const TOP_RESULT_GAP: f32 = 24.0;
 const SONGS_MIN_W: f32 = 320.0;
 
 /// `pick`: choosing a transfer match, so clicking a song picks it.
-fn top_result(ui: &mut Ui, c: &Card, liked: bool, pick: bool, acts: &mut Vec<Action>) {
+fn top_result(ui: &mut Ui, c: &Card, pick: bool, acts: &mut Vec<Action>) {
     ui.vertical(|ui| {
         ui.label(RichText::new(crate::tr!("nav-top-result")).font(theme::bold(24.0)));
         ui.add_space(8.0);
@@ -976,7 +975,7 @@ fn top_result(ui: &mut Ui, c: &Card, liked: bool, pick: bool, acts: &mut Vec<Act
         // Right-click anywhere on the card opens its menu, even over the play button or a linked name.
         widgets::right_click_menu(&resp)
             .close_behavior(behavior)
-            .show(|ui| widgets::card_menu_contents(ui, c, liked, None, acts));
+            .show(|ui| widgets::card_menu_contents(ui, c, None, acts));
         if p.clicked() {
             acts.push(match &c.target {
                 _ if active.is_some() => Action::TogglePlay,
@@ -1329,7 +1328,7 @@ fn artist(app: &mut App, ui: &mut Ui, id: &str, now: f64) {
     // Their songs you've saved, less those hidden as explicit.
     let library: Vec<&Card> = a.library.iter().filter(|c| !matches!(&c.target, Target::Song(t) if !rows.shows(t))).collect();
     if !library.is_empty() {
-        cards_shelf(ui, &app.liked, acts, "a-lib", crate::tr!("nav-from-library"), None, None, &library);
+        cards_shelf(ui, acts, "a-lib", crate::tr!("nav-from-library"), None, None, &library);
     }
     card_row(ui, "a-pl", crate::tr!("nav-featured-on"), &a.playlists, acts);
     card_row(ui, "a-sim", crate::tr!("nav-similar-artists"), &a.similar, acts);
@@ -1382,7 +1381,7 @@ fn library(app: &mut App, ui: &mut Ui, tab: LibTab, now: f64) {
             ui.spacing_mut().item_spacing = vec2(20.0, 22.0);
             for (k, &i) in order.iter().enumerate() {
                 let pin = pinned.map(|p| matches!(&cards[i].target, Target::Playlist(id) if p.contains(id)));
-                arrive::item(ui, g, k, 16.0, |ui| card(ui, &cards[i], CARD, false, pin, acts));
+                arrive::item(ui, g, k, 16.0, |ui| card(ui, &cards[i], CARD, pin, acts));
             }
         });
     };
@@ -2035,7 +2034,6 @@ fn settings_playback(app: &mut App, ui: &mut Ui) {
             (tr!("settings-ratings-player-button"), tr!("settings-ratings-player-button-desc"), &mut ratings.player_button),
             (tr!("settings-ratings-list-icons"), tr!("settings-ratings-list-icons-desc"), &mut ratings.list_icons),
             (tr!("settings-ratings-dim-disliked"), tr!("settings-ratings-dim-disliked-desc"), &mut ratings.dim_disliked),
-            (tr!("settings-ratings-skip-disliked"), tr!("settings-ratings-skip-disliked-desc"), &mut ratings.skip_disliked),
             (tr!("settings-ratings-dislike-notices"), tr!("settings-ratings-dislike-notices-desc"), &mut ratings.dislike_notices),
             (tr!("settings-ratings-unlike-notices"), tr!("settings-ratings-unlike-notices-desc"), &mut ratings.unlike_notices),
             (tr!("settings-ratings-safe-likes"), tr!("settings-ratings-safe-likes-desc"), &mut ratings.confirm_unlike),

@@ -37,7 +37,6 @@ ui-save-library = Opslaan in bibliotheek
 ui-remove-library = Uit bibliotheek verwijderen
 ui-like = Vind ik leuk
 ui-like-song = Nummer liken
-ui-dislike-song = Vind ik niet leuk
 ui-unlike = Like intrekken
 ui-remove-dislike = ‘Vind ik niet leuk’ intrekken
 ui-undo = Ongedaan maken

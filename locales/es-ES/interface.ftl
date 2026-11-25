@@ -37,7 +37,6 @@ ui-save-library = Guardar en la biblioteca
 ui-remove-library = Quitar de la biblioteca
 ui-like = Me gusta
 ui-like-song = Me gusta esta canción
-ui-dislike-song = No me gusta esta canción
 ui-unlike = Quitar «Me gusta»
 ui-remove-dislike = Quitar «No me gusta»
 ui-undo = Deshacer

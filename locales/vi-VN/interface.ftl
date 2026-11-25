@@ -37,7 +37,6 @@ ui-save-library = Lưu vào thư viện
 ui-remove-library = Xóa khỏi thư viện
 ui-like = Thích
 ui-like-song = Thích bài hát
-ui-dislike-song = Không thích bài hát
 ui-unlike = Bỏ thích
 ui-remove-dislike = Xóa lượt không thích
 ui-undo = Hoàn tác

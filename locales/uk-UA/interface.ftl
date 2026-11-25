@@ -37,7 +37,6 @@ ui-save-library = Зберегти в бібліотеці
 ui-remove-library = Вилучити з бібліотеки
 ui-like = Подобається
 ui-like-song = Позначити «Подобається»
-ui-dislike-song = Позначити «Не подобається»
 ui-unlike = Зняти вподобайку
 ui-remove-dislike = Зняти «Не подобається»
 ui-undo = Скасувати

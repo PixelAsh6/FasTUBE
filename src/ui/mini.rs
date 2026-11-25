@@ -34,7 +34,6 @@ const PINNED_BY_DEFAULT: bool = true;
 const CLOSE: CloseButton = CloseButton::LikeFullWindow;
 /// From the work area's corner, the first time.
 const MARGIN: f32 = 16.0;
-const RATING_ICON_SIZE: f32 = 17.0;
 /// The open pill's button that grows it into a card with more of the song: only where the
 /// window can be clipped to a shape (Windows). Elsewhere a window big enough for the card
 /// would take the clicks meant for what's around the pill.
@@ -1044,11 +1043,10 @@ pub fn strip(app: &mut App, ui: &mut Ui, now: f64) {
         app.mini.set_pinned(&ctx, !pinned);
     }
 
-    // One group, centred under the text: like, dislike, previous, play, next, volume.
+    // One group, centred under the text: previous, play, next, volume.
     let cy = art.bottom() - 17.0;
-    let show_dislike = app.rating_settings.player_button;
-    let gap = if show_dislike { 36.0 } else { 44.0 };
-    let cx = (x0 + x1) / 2.0 + if show_dislike { gap / 2.0 } else { 0.0 };
+    let gap = 44.0;
+    let cx = (x0 + x1) / 2.0;
     let enabled = track.is_some();
     let small = |ui: &mut Ui, c: Pos2, glyph: char, name: &str| -> bool {
         let b = Rect::from_center_size(c, Vec2::splat(34.0));
@@ -1071,33 +1069,6 @@ pub fn strip(app: &mut App, ui: &mut Ui, now: f64) {
     play_glyph(app, ui, c, 1.0, theme::on_text(), now);
     if presp.clicked() && enabled {
         app.toggle();
-    }
-
-    if let Some(t) = &track {
-        // What's heard, like Now playing's menu: a song version standing in for the music video.
-        let t = &app.playing_track().cloned().unwrap_or_else(|| t.clone());
-        let liked = app.heard_liked();
-        let lpos = pos2(cx - gap * if show_dislike { 3.0 } else { 2.0 }, cy);
-        let lresp = ui.interact(Rect::from_center_size(lpos, Vec2::splat(32.0)), ui.scope_id().with(("mini-like", &t.id, app.generation)), Sense::click());
-        let name = if liked { crate::tr!("ui-unlike") } else { crate::tr!("ui-like") };
-        let lresp = named(lresp, name).on_hover_cursor(egui::CursorIcon::PointingHand);
-        let gesture = super::ratings::like_gesture(ui, &lresp, (), liked, None);
-        let lh = theme::anim_bool(&ctx, lresp.id.with("h"), lresp.hovered(), 0.15);
-        let pop = theme::anim_bool(&ctx, ("liked", &t.id), liked, 0.3);
-        ui.painter().circle_filled(lpos, 16.0, theme::glass(0.1 * lh));
-        let size = RATING_ICON_SIZE * (1.0 + 0.25 * (pop * std::f32::consts::PI).sin());
-        let outline = theme::lerp_color(theme::lerp_color(theme::text_dim(), theme::text(), lh), theme::RED, pop);
-        super::ratings::unlike_heart(ui, lpos, size, pop, outline, theme::RED, gesture.progress);
-        if gesture.hint {
-            super::ratings::unlike_hint(ui, &lresp);
-        }
-        if gesture.activate && let Some(action) = app.heard_like_action(!liked) {
-            app.actions.push(action);
-        }
-        if show_dislike {
-            let rect = Rect::from_center_size(pos2(cx - 2.0 * gap, cy), Vec2::splat(34.0));
-            super::ratings::player_button(app, ui, rect, t, RATING_ICON_SIZE, true);
-        }
     }
 
     // Volume: click to mute, scroll to change.
@@ -1415,8 +1386,7 @@ fn card_body(app: &mut App, ui: &mut Ui, cr: Rect, now: f64) {
         }
     }
     let x0 = art.right() + 14.0;
-    let show_dislike = app.rating_settings.player_button;
-    let text_w = (rt - if show_dislike { 68.0 } else { 34.0 } - x0).max(20.0);
+    let text_w = (rt - 34.0 - x0).max(20.0);
     match &track {
         Some(t) => {
             let tr = widgets::title_at(ui, pos2(x0, art.top() + 6.0), &t.title, t.explicit, theme::semibold(15.0), theme::text(), text_w);
@@ -1430,33 +1400,6 @@ fn card_body(app: &mut App, ui: &mut Ui, cr: Rect, now: f64) {
             text_at(ui, pos2(x0, art.center().y - 9.0), crate::tr!("player-nothing-playing"), theme::semibold(15.0), theme::text_dim(), text_w);
         }
     }
-    if let Some(t) = &track {
-        // What's heard, like Now playing's menu: a song version standing in for the music video.
-        let t = &app.playing_track().cloned().unwrap_or_else(|| t.clone());
-        let liked = app.heard_liked();
-        let lpos = pos2(rt - if show_dislike { 44.0 } else { 8.0 }, art.center().y);
-        let lresp = ui.interact(Rect::from_center_size(lpos, Vec2::splat(32.0)), ui.scope_id().with(("card-like", &t.id, app.generation)), Sense::click());
-        let name = if liked { crate::tr!("ui-unlike") } else { crate::tr!("ui-like") };
-        let lresp = named(lresp, name).on_hover_cursor(egui::CursorIcon::PointingHand);
-        let gesture = super::ratings::like_gesture(ui, &lresp, (), liked, None);
-        let lh = theme::anim_bool(&ctx, lresp.id.with("h"), lresp.hovered(), 0.15);
-        let pop = theme::anim_bool(&ctx, ("liked", &t.id), liked, 0.3);
-        ui.painter().circle_filled(lpos, 16.0, theme::glass(0.1 * lh));
-        let size = RATING_ICON_SIZE * (1.0 + 0.25 * (pop * std::f32::consts::PI).sin());
-        let outline = theme::lerp_color(theme::lerp_color(theme::text_dim(), theme::text(), lh), theme::RED, pop);
-        super::ratings::unlike_heart(ui, lpos, size, pop, outline, theme::RED, gesture.progress);
-        if gesture.hint {
-            super::ratings::unlike_hint(ui, &lresp);
-        }
-        if gesture.activate && let Some(action) = app.heard_like_action(!liked) {
-            app.actions.push(action);
-        }
-        if show_dislike {
-            let rect = Rect::from_center_size(pos2(rt - 8.0, art.center().y), Vec2::splat(34.0));
-            super::ratings::player_button(app, ui, rect, t, RATING_ICON_SIZE, true);
-        }
-    }
-
     card_seek(app, ui, Rect::from_min_max(pos2(l, top + 146.0), pos2(rt, top + 146.0)), track.as_ref());
 
     // Shuffle, previous, play, next, repeat.

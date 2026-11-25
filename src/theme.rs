@@ -900,7 +900,6 @@ pub mod icon {
     pub const VOLUME_1: char = '\u{e1aa}';
     pub const VOLUME_X: char = '\u{e1ac}';
     pub const HEART: char = '\u{e0f2}';
-    pub const THUMBS_DOWN: char = '\u{e189}';
     pub const LIST_MUSIC: char = '\u{e2e0}';
     /// Lucide 0.460's, added to the subset with `airplay` (the font's own codepoints).
     pub const MONITOR_SPEAKER: char = '\u{e210}';

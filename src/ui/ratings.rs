@@ -3,14 +3,16 @@
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
-use egui::{Color32, Context, Id, Key, LayerId, Order, PointerButton, Rect, Response, Sense, Ui, pos2, vec2};
+use egui::{Color32, Context, Id, Key, LayerId, Order, PointerButton, Rect, Response, Ui, pos2, vec2};
 
 use crate::backend::{Backend, Req};
 use crate::model::Track;
+#[cfg(test)]
+use egui::Sense;
 use crate::theme;
 use crate::ytm::SongRating;
 
-use super::{Action, App, widgets};
+use super::{App, widgets};
 
 const MAX_READS: usize = 3;
 const READ_GAP: f64 = 0.2;
@@ -377,7 +379,6 @@ impl Ratings {
 #[derive(Clone, Default)]
 struct Rows {
     enabled: bool,
-    icons: bool,
     dim: bool,
     ratings: HashMap<String, SongRating>,
     wanted: HashSet<String>,
@@ -409,42 +410,22 @@ pub(super) fn rated_track(track: &Track) -> Track {
     track
 }
 
-pub(super) fn row(ui: &Ui, track: &Track, liked: bool, hovered: bool) -> (Option<SongRating>, bool, bool) {
-    let (rating, icons, dim, added) = ui.data_mut(|d| {
+pub(super) fn row(ui: &Ui, track: &Track, liked: bool) -> (Option<SongRating>, bool, bool) {
+    // FasTUBE: no hearts on rows, ever. The dim-and-skip data still syncs.
+    let (rating, dim, added) = ui.data_mut(|d| {
         let rows = d.get_temp_mut_or_default::<Rows>(rows_id());
         if !rows.enabled || track.id.is_empty() {
-            return (None, false, false, false);
+            return (None, false, false);
         }
         let id = rating_id(track);
         let rating = rows.rating(id, liked);
-        if rows.icons && hovered && rating.is_none() {
-            rows.visible.insert(0, id.to_owned());
-        } else {
-            rows.visible.push(id.to_owned());
-        }
-        (rating, rows.icons, rows.dim && rating == Some(SongRating::Dislike), !rows.wanted.contains(id))
+        rows.visible.push(id.to_owned());
+        (rating, rows.dim && rating == Some(SongRating::Dislike), !rows.wanted.contains(id))
     });
     if added {
         ui.ctx().request_repaint();
     }
-    (rating, icons, dim)
-}
-
-pub(super) fn player_button(app: &mut App, ui: &Ui, rect: Rect, track: &Track, size: f32, visible: bool) {
-    let disliked = app.ratings.get(&track.id) == Some(SongRating::Dislike);
-    let name = if disliked { crate::tr!("ui-remove-dislike") } else { crate::tr!("ui-dislike-song") };
-    let resp = widgets::named(ui.interact(rect, ui.scope_id().with("dislike"), Sense::click()), name)
-        .on_hover_text(name)
-        .on_hover_cursor(egui::CursorIcon::PointingHand);
-    let h = theme::anim_bool(ui.ctx(), resp.id.with("h"), resp.hovered(), 0.15);
-    let a = theme::anim_bool(ui.ctx(), resp.id.with("show"), visible || disliked || resp.has_focus(), 0.15);
-    ui.painter().circle_filled(rect.center(), rect.width() / 2.0, theme::glass(0.1 * h));
-    let color = if disliked { theme::RED } else { theme::lerp_color(theme::text_dim(), theme::text(), h) };
-    super::vector::dislike(ui, rect.center(), size, disliked, theme::with_alpha(color, a));
-    widgets::focus_ring(ui, &resp, rect, rect.width() / 2.0);
-    if resp.clicked() {
-        app.actions.push(if disliked { Action::RemoveDislike(track.id.clone()) } else { Action::Dislike(track.clone()) });
-    }
+    (rating, false, dim)
 }
 
 impl App {
@@ -484,7 +465,6 @@ impl App {
         ratings.extend(self.pending_unlikes().iter().map(|id| (id.clone(), SongRating::Indifferent)));
         ctx.data_mut(|d| d.insert_temp(rows_id(), Rows {
             enabled,
-            icons: settings.list_icons,
             dim: settings.dim_disliked,
             ratings,
             wanted: wanted.into_iter().collect(),
@@ -655,56 +635,5 @@ mod tests {
         assert!(matches!(ratings.entries["song"], Entry::Ready(None)));
     }
 
-    #[test]
-    fn hovering_an_unrated_row_reveals_a_heart_that_likes_without_playing() {
-        use egui::{Color32, Event, Modifiers, PointerButton, Pos2, RawInput, Shape, vec2};
-        use SongRating::*;
 
-        let track = Track { id: "audio".into(), title: "Song".into(), stands_for: Some("video".into()), ..Default::default() };
-        let opts = widgets::RowOpts { number: None, show_album: false, plays_col: false, current: false, playing: false, accent: Color32::RED, time: 0.0, liked: false, added: None, pick: false, selected: None, remove: None, queue_remove: None };
-        let look = &crate::preset::active().app.row_look;
-        // The neutral rating is only known after the account's reply.
-        for (rating, icons) in [(None, true), (Some(Indifferent), true), (Some(Like), true), (Some(Dislike), true), (Some(Indifferent), false)] {
-            let ctx = Context::default();
-            crate::theme::install_fonts(&ctx, "", &[]);
-            let ratings = rating.into_iter().map(|rating| ("video".to_owned(), rating)).collect();
-            ctx.data_mut(|d| d.insert_temp(rows_id(), Rows { enabled: true, icons, ratings, ..Default::default() }));
-
-            let mut time = 0.0;
-            let mut frame = |events| {
-                time += 0.1;
-                let mut slot = Pos2::ZERO;
-                let mut row_middle = Pos2::ZERO;
-                let mut played = false;
-                let mut acts = Vec::new();
-                let input = RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(800.0, 400.0))), time: Some(time), events, ..Default::default() };
-                let mut output = ctx.run_ui(input, |ui| {
-                    row_middle = ui.cursor().min + vec2(100.0, look.height / 2.0);
-                    slot = ui.cursor().min + vec2(ui.available_width() - 41.0 - look.pad - 52.0 - 14.0, look.height / 2.0);
-                    played = widgets::track_row(ui, &track, &opts, &mut acts).clicked();
-                });
-                output.textures_delta.clear();
-                let heart = output.shapes.iter().any(|s| {
-                    matches!(&s.shape, Shape::LineSegment { points, .. } if points.iter().all(|p| p.distance(slot) < 10.0))
-                });
-                (slot, row_middle, heart, played, acts)
-            };
-
-            let (slot, row_middle, heart, _, _) = frame(vec![]);
-            assert_eq!(heart, icons && rating == Some(Like), "idle {rating:?}");
-            let (_, _, heart, _, _) = frame(vec![Event::PointerMoved(row_middle)]);
-            assert_eq!(heart, icons && matches!(rating, Some(Like | Indifferent)), "hovered {rating:?}");
-            frame(vec![Event::PointerMoved(slot)]);
-            let click = |pressed| Event::PointerButton { pos: slot, button: PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
-            frame(vec![click(true)]);
-            let (_, _, _, played, acts) = frame(vec![click(false)]);
-            match (rating, icons) {
-                (Some(Indifferent), true) => assert!(matches!(&acts[..], [Action::Like(t, true)] if t.id == "video" && t.stands_for.is_none())),
-                (Some(Like), true) => assert!(matches!(&acts[..], [Action::RemoveLike(t)] if t.id == "video" && t.stands_for.is_none())),
-                (Some(Dislike), true) => assert!(matches!(&acts[..], [Action::RemoveDislike(id)] if id == "video")),
-                _ => assert!(acts.is_empty()),
-            }
-            assert_eq!(played, rating.is_none() || !icons);
-        }
-    }
 }

@@ -119,7 +119,6 @@ pub enum Req {
     UnlikeBoth { song: String, video: String },
     /// Several likes (or unlikes) one after another, for a selection.
     LikeMany { video_ids: Vec<String>, like: bool, versions: UnlikeVersions },
-    Dislike { video_id: String, skip_generation: Option<u64> },
     RemoveRating { video_id: String, was_disliked: bool },
     CreatePlaylist { title: String, video_ids: Vec<String> },
     EditPlaylist { id: String, title: String, description: String, privacy: Option<String> },
@@ -180,7 +179,6 @@ impl Req {
             Req::VideoStream { .. } | Req::MusicVideo(_) => crate::tr!("ui-video"),
             Req::Canvas(_) => crate::tr!("settings-animated-covers"),
             Req::Like { .. } | Req::LikeMany { .. } | Req::UnlikeBoth { .. } => crate::tr!("ui-like"),
-            Req::Dislike { .. } => crate::tr!("ui-dislike-song"),
             Req::RemoveRating { .. } => crate::tr!("backend-rating"),
             Req::CreatePlaylist { .. } => crate::tr!("transfer-create-playlist"),
             Req::EditPlaylist { .. } => crate::tr!("dialog-edit-playlist"),
@@ -436,7 +434,6 @@ pub enum Resp {
     PlayQueue { target: Target, title: String, tracks: Vec<Track> },
     /// `other`: its other version, whose like went with this one.
     Liked { video_id: String, like: bool, other: Option<String> },
-    Disliked { video_id: String, skip_generation: Option<u64>, ok: bool },
     RatingRemoved { video_id: String, was_disliked: bool, ok: bool },
     SongRating { video_id: String, round: u64, rating: Option<ytm::SongRating> },
     /// A run of likes or unlikes: `taken` just went through, `done` of `total` tried.
@@ -494,7 +491,6 @@ impl Resp {
                 | Resp::Channels(_)
                 | Resp::ServerQueue(_)
                 | Resp::Liked { .. }
-                | Resp::Disliked { .. }
                 | Resp::RatingRemoved { .. }
                 | Resp::SongRating { .. }
                 | Resp::LikeProgress { .. }
@@ -1375,13 +1371,6 @@ impl Backend {
                     }
                 }
                 Req::LikeMany { video_ids, like, versions } => self.like_many(video_ids, like, versions).await?,
-                Req::Dislike { video_id, skip_generation } => {
-                    let result = ytm::dislike(api, &video_id).await;
-                    if let Err(e) = &result {
-                        log::warn!("disliking {video_id}: {e:#}");
-                    }
-                    Resp::Disliked { video_id, skip_generation, ok: result.is_ok() }
-                }
                 Req::RemoveRating { video_id, was_disliked } => {
                     let result = ytm::set_like(api, &video_id, false).await;
                     if let Err(e) = &result {

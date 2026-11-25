@@ -37,7 +37,6 @@ ui-save-library = Salva nella raccolta
 ui-remove-library = Rimuovi dalla raccolta
 ui-like = Mi piace
 ui-like-song = Metti «Mi piace» al brano
-ui-dislike-song = Metti «Non mi piace»
 ui-unlike = Rimuovi il «Mi piace»
 ui-remove-dislike = Rimuovi il «Non mi piace»
 ui-undo = Annulla

@@ -37,7 +37,6 @@ ui-save-library = 保存到库
 ui-remove-library = 从库中删除
 ui-like = 喜欢
 ui-like-song = 喜欢这首歌
-ui-dislike-song = 不喜欢歌曲
 ui-unlike = 删除喜欢
 ui-remove-dislike = 删除不喜欢的内容
 ui-undo = 撤消

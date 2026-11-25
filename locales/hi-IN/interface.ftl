@@ -37,7 +37,6 @@ ui-save-library = लाइब्रेरी में सहेजें
 ui-remove-library = लाइब्रेरी से हटाएँ
 ui-like = जैसे
 ui-like-song = गाना पसंद है
-ui-dislike-song = गाना नापसंद है
 ui-unlike = लाइक हटाएं
 ui-remove-dislike = नापसंद हटाएँ
 ui-undo = पूर्ववत करें

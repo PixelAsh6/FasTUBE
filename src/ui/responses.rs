@@ -438,27 +438,6 @@ impl App {
                 }
                 self.other_half_unliked(other);
             }
-            Resp::Disliked { video_id, skip_generation, ok } => {
-                let id = std::slice::from_ref(&video_id);
-                if ok {
-                    self.ratings.confirm(&video_id, crate::ytm::SongRating::Dislike);
-                    self.lists.edits.confirm_likes(id, &[]);
-                    if self.rating_settings.dislike_notices {
-                        self.toast(crate::tr!("status-disliked"));
-                    }
-                    let rated = Some(video_id.as_str());
-                    if self.rating_settings.skip_disliked
-                        && skip_generation == Some(self.generation)
-                        && (self.current_id() == rated || self.playing_id() == rated)
-                    {
-                        self.skip_disliked();
-                    }
-                } else {
-                    self.lists.edits.confirm_likes(&[], id);
-                    self.request_liked(true);
-                    self.toast(crate::tr!("status-dislike-failed"));
-                }
-            }
             Resp::RatingRemoved { video_id, was_disliked, ok } => {
                 if ok {
                     self.ratings.confirm(&video_id, crate::ytm::SongRating::Indifferent);

@@ -37,7 +37,6 @@ ui-save-library = حفظ في المكتبة
 ui-remove-library = إزالة من المكتبة
 ui-like = إعجاب
 ui-like-song = الإعجاب بالأغنية
-ui-dislike-song = عدم الإعجاب بالأغنية
 ui-unlike = إزالة الإعجاب
 ui-remove-dislike = إزالة عدم الإعجاب
 ui-undo = تراجع

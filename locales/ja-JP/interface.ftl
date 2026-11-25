@@ -37,7 +37,6 @@ ui-save-library = ライブラリに保存
 ui-remove-library = ライブラリから削除
 ui-like = 高評価
 ui-like-song = 曲に高評価を付ける
-ui-dislike-song = 曲に低評価を付ける
 ui-unlike = 高評価を取り消す
 ui-remove-dislike = 低評価を取り消す
 ui-undo = 元に戻す

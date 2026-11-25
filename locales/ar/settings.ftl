@@ -62,8 +62,6 @@ settings-ratings-list-icons = أيقونات التقييم في قوائم ال
 settings-ratings-list-icons-desc = إظهار التقييمات بجانب المدة. مرّر المؤشر فوق أغنية غير مقيّمة لإظهار زر الإعجاب الخاص بها.
 settings-ratings-dim-disliked = تعتيم الأغاني غير المعجب بها
 settings-ratings-dim-disliked-desc = عرض الأغاني غير المعجب بها بألوان باهتة في قوائم الأغاني.
-settings-ratings-skip-disliked = عدم الإعجاب يتخطّى إلى المقطع التالي
-settings-ratings-skip-disliked-desc = الانتقال بعد تأكيد YouTube Music لعدم الإعجاب. يتبع الضيوف في الاستماع معًا تشغيل المضيف.
 settings-ratings-dislike-notices = إشعارات عدم الإعجاب
 settings-ratings-dislike-notices-desc = إظهار رسالة عند حفظ عدم الإعجاب أو إزالته.
 settings-ratings-unlike-notices = إشعارات إزالة الإعجاب
@@ -118,7 +116,6 @@ settings-speed = السرعة
 settings-keep-pitch = الحفاظ على طبقة الصوت
 settings-keep-pitch-desc = أسرع أو أبطأ دون أن يصبح الصوت أعلى أو أخفض طبقةً. عند إيقافه، تتغير الطبقة مع السرعة، مثل الأسطوانة.
 settings-playback-speed-jam-note = تعود إلى الوضع الطبيعي أثناء وجودك في جلسة مشتركة، حتى يسمع الجميع الأغنية نفسها.
-
 
 ## Music videos
 
@@ -255,7 +252,6 @@ settings-language-desc = النصوص الخاصة بالتطبيق نفسه. أ
 settings-restart-to-apply = أعد التشغيل للتطبيق
 settings-language-restart-desc = تتغيّر لغة التطبيق بدءًا من التشغيل التالي.
 settings-restart-now = أعد التشغيل الآن
-
 
 ## Song info: the language and country YouTube Music answers in. Separate from Language above.
 

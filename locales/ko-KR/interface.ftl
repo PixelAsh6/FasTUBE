@@ -37,7 +37,6 @@ ui-save-library = 라이브러리에 저장
 ui-remove-library = 라이브러리에서 제거
 ui-like = 좋다
 ui-like-song = 노래 좋아요
-ui-dislike-song = 싫어하는 노래
 ui-unlike = 좋아요 삭제
 ui-remove-dislike = 싫어요 삭제
 ui-undo = 실행 취소

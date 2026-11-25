@@ -2382,14 +2382,7 @@ fn options_menu(app: &mut App, ui: &mut Ui, track: &crate::model::Track, lyrics:
     widgets::menu_popup(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         // Kept short: the song's first actions as icons, the lyrics sources behind one row.
         widgets::menu_body(ui, 256.0);
-        let liked = app.heard_liked();
-        let asked = app.actions.len();
-        widgets::song_action_icons(ui, track, liked, &mut app.actions);
-        if let Some(index) = app.actions[asked..].iter().position(|action| matches!(action, Action::Like(..)))
-            && let Some(rating) = app.heard_like_action(!liked)
-        {
-            app.actions[asked + index] = rating;
-        }
+        widgets::song_action_icons(ui, track, &mut app.actions);
         menu_divider(ui);
         if lyrics {
             lyric_options(app, ui);

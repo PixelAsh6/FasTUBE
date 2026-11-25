@@ -242,14 +242,6 @@ impl App {
             }
             Action::LikeMany(tracks, false) => self.request_unlike(Unlike::Selection(tracks)),
             Action::LikeMany(tracks, true) => self.set_many_likes(tracks, true),
-            Action::Dislike(t) => {
-                if !self.logged_in { self.toast(crate::tr!("status-sign-in-rate")); return; }
-                let id = Some(t.id.as_str());
-                let skip_generation = (!self.jam.guest() && (self.current_id() == id || self.playing_id() == id)).then_some(self.generation);
-                self.rating(|id| id == t.id);
-                self.set_liked(std::slice::from_ref(&t), false);
-                self.backend.request(Req::Dislike { video_id: t.id, skip_generation });
-            }
             Action::RemoveDislike(video_id) => {
                 if !self.logged_in { self.toast(crate::tr!("status-sign-in-rate")); return; }
                 self.rating(|id| id == video_id);

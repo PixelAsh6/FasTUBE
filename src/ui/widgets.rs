@@ -852,7 +852,7 @@ pub fn paint_disc(ui: &Ui, center: Pos2, r: f32, thumbs: &[Thumb], angle: f32, t
 
 /// Album/playlist/artist/song card with hover zoom, scrim and a play button. `pin`: see
 /// `card_menu_contents`.
-pub fn card(ui: &mut Ui, c: &Card, width: f32, liked: bool, pin: Option<bool>, acts: &mut Vec<Action>) {
+pub fn card(ui: &mut Ui, c: &Card, width: f32, pin: Option<bool>, acts: &mut Vec<Action>) {
     let height = width + 58.0;
     let (rect, resp) = ui.allocate_exact_size(vec2(width, height), Sense::click());
     if !ui.is_rect_visible(rect) {
@@ -929,10 +929,10 @@ pub fn card(ui: &mut Ui, c: &Card, width: f32, liked: bool, pin: Option<bool>, a
     let more_rect = Rect::from_center_size(pos2(rect.right() - 16.0, sub_y + 8.0), Vec2::splat(30.0));
     let more = more_button(ui, more_rect, resp.id.with("more"), crate::tr!("ui-options"));
     let behavior = if matches!(c.target, Target::Song(_)) { egui::PopupCloseBehavior::CloseOnClickOutside } else { egui::PopupCloseBehavior::CloseOnClick };
-    menu_popup(&more).close_behavior(behavior).show(|ui| card_menu_contents(ui, c, liked, pin, acts));
+    menu_popup(&more).close_behavior(behavior).show(|ui| card_menu_contents(ui, c, pin, acts));
     // Right-click anywhere on the card opens the same menu, even on the play button,
     // a linked name or ⋮, which take the click themselves.
-    right_click_menu(&resp).close_behavior(behavior).show(|ui| card_menu_contents(ui, c, liked, pin, acts));
+    right_click_menu(&resp).close_behavior(behavior).show(|ui| card_menu_contents(ui, c, pin, acts));
 
     if play_hit {
         match &c.target {
@@ -979,9 +979,9 @@ pub fn download_veil(ui: &Ui, img: Rect, radius: f32, id: &str) {
 }
 
 /// A card's menu. `pin`: whether the playlist is pinned, where pinning it is offered.
-pub fn card_menu_contents(ui: &mut Ui, c: &Card, liked: bool, pin: Option<bool>, acts: &mut Vec<Action>) {
+pub fn card_menu_contents(ui: &mut Ui, c: &Card, pin: Option<bool>, acts: &mut Vec<Action>) {
     match &c.target {
-        Target::Song(t) => song_menu(ui, t, liked, None, acts),
+        Target::Song(t) => song_menu(ui, t, None, acts),
         t => {
             menu_body(ui, crate::preset::active().app.menu_look.min_px);
             if menu_action(ui, Some(icon::PLAY), crate::tr!("ui-play")) {
@@ -1183,19 +1183,13 @@ fn menu_row(ui: &mut Ui, glyph: Option<char>, label: &str, arrow: bool, unlike: 
 }
 
 /// `remove`: the song's row in the open playlist, when it's yours and the song can come out.
-pub fn song_menu(ui: &mut Ui, t: &Track, liked: bool, remove: Option<usize>, acts: &mut Vec<Action>) {
+pub fn song_menu(ui: &mut Ui, t: &Track, remove: Option<usize>, acts: &mut Vec<Action>) {
     menu_body(ui, crate::preset::active().app.menu_look.min_px);
-    song_actions(ui, t, liked, remove, acts);
+    song_actions(ui, t, remove, acts);
 }
 
 /// The song menu's items, for menus that add their own (now playing's options).
-pub fn song_actions(ui: &mut Ui, t: &Track, liked: bool, remove: Option<usize>, acts: &mut Vec<Action>) {
-    if menu_row(ui, Some(icon::HEART), if liked { crate::tr!("ui-unlike") } else { crate::tr!("ui-like-song") }, true, liked.then_some(t)) {
-        acts.push(Action::Like(t.clone(), !liked));
-    }
-    if menu_action(ui, Some(icon::THUMBS_DOWN), crate::tr!("ui-dislike-song")) {
-        acts.push(Action::Dislike(t.clone()));
-    }
+pub fn song_actions(ui: &mut Ui, t: &Track, remove: Option<usize>, acts: &mut Vec<Action>) {
     if menu_action(ui, Some(icon::LIST_PLUS), crate::tr!("ui-add-playlist")) {
         acts.push(Action::AddToPlaylist(vec![t.clone()]));
     }
@@ -1223,12 +1217,11 @@ pub fn song_actions(ui: &mut Ui, t: &Track, liked: bool, remove: Option<usize>, 
     song_actions_rest(ui, t, acts);
 }
 
-/// [`song_actions`]' first five as a row of icons, each named on hover, for a menu that
-/// has to stay short: like (held to unlike, as the row is), dislike, add to playlist,
-/// copy link, and download or show it in its folder.
-pub fn song_action_icons(ui: &mut Ui, t: &Track, liked: bool, acts: &mut Vec<Action>) {
+/// [`song_actions`]' row of icons, each named on hover, for a menu that has to stay
+/// short: add to playlist, copy link, and download or show it in its folder.
+pub fn song_action_icons(ui: &mut Ui, t: &Track, acts: &mut Vec<Action>) {
     let gap = 2.0;
-    let w = ((ui.available_width() - 4.0 * gap) / 5.0).floor();
+    let w = ((ui.available_width() - 2.0 * gap) / 3.0).floor();
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = gap;
         let cell = |ui: &mut Ui, label: &str| {
@@ -1241,23 +1234,6 @@ pub fn song_action_icons(ui: &mut Ui, t: &Track, liked: bool, acts: &mut Vec<Act
             let color = if resp.hovered() { theme::text() } else { theme::text_dim() };
             (r, resp, color)
         };
-        let label = if liked { crate::tr!("ui-unlike") } else { crate::tr!("ui-like-song") };
-        let (r, resp, color) = cell(ui, label);
-        let like = if liked {
-            let gesture = super::ratings::like_gesture(ui, &resp, super::ratings::rating_id(t), true, None);
-            super::ratings::unlike_heart(ui, r.center(), 16.0, 1.0, color, color, gesture.progress);
-            if gesture.hint {
-                super::ratings::unlike_hint(ui, &resp);
-            }
-            gesture.activate
-        } else {
-            icon_at(ui, r.center(), icon::HEART, 16.0, color);
-            resp.clicked()
-        };
-        if like {
-            acts.push(Action::Like(t.clone(), !liked));
-            ui.close();
-        }
         // Each closes the menu, as its row does.
         let icon = |ui: &mut Ui, glyph: char, label: &str| {
             let (r, resp, color) = cell(ui, label);
@@ -1267,9 +1243,6 @@ pub fn song_action_icons(ui: &mut Ui, t: &Track, liked: bool, acts: &mut Vec<Act
             }
             resp.clicked()
         };
-        if icon(ui, icon::THUMBS_DOWN, crate::tr!("ui-dislike-song")) {
-            acts.push(Action::Dislike(t.clone()));
-        }
         if icon(ui, icon::LIST_PLUS, crate::tr!("ui-add-playlist")) {
             acts.push(Action::AddToPlaylist(vec![t.clone()]));
         }
@@ -1535,7 +1508,7 @@ pub fn track_row(ui: &mut Ui, t: &Track, o: &RowOpts, acts: &mut Vec<Action>) ->
     // While dragging, only the drop place should show.
     let hovered = base.contains_pointer() && ui.ctx().dragged_id().is_none();
     let like_on_hover = !o.pick && o.selected.is_none();
-    let (rating, show_rating, dimmed) = super::ratings::row(ui, t, o.liked, hovered && like_on_hover);
+    let (rating, show_rating, dimmed) = super::ratings::row(ui, t, o.liked);
     let rating = rating.filter(|r| show_rating && (*r != SongRating::Indifferent || like_on_hover));
     let opacity = if dimmed { 0.58 } else { 1.0 };
     let dur_w = 52.0;
@@ -1731,14 +1704,14 @@ pub fn track_row(ui: &mut Ui, t: &Track, o: &RowOpts, acts: &mut Vec<Action>) ->
     let open_id = more_id.with("open");
     if !rl.hover_menu || hovered || ui.data(|d| d.get_temp::<bool>(open_id).unwrap_or(false)) {
         let more = more_button(ui, more_rect, more_id, crate::tr!("ui-song-options"));
-        menu_popup(&more).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| song_menu(ui, t, o.liked, o.remove, acts));
+        menu_popup(&more).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| song_menu(ui, t, o.remove, acts));
         if rl.hover_menu {
             let open = egui::Popup::is_id_open(ui.ctx(), egui::Popup::default_response_id(&more));
             ui.data_mut(|d| d.insert_temp(open_id, open));
         }
     }
     // Right-click anywhere on the row opens the same menu.
-    context_popup(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| song_menu(ui, t, o.liked, o.remove, acts));
+    context_popup(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| song_menu(ui, t, o.remove, acts));
     resp
 }
 

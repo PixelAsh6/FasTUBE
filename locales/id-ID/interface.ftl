@@ -37,7 +37,6 @@ ui-save-library = Simpan ke koleksi
 ui-remove-library = Hapus dari koleksi
 ui-like = Suka
 ui-like-song = Sukai lagu
-ui-dislike-song = Tidak suka lagu
 ui-unlike = Hapus suka
 ui-remove-dislike = Hapus tidak suka
 ui-undo = Urungkan

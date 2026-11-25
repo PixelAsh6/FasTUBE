@@ -37,7 +37,6 @@ ui-save-library = Zapisz w bibliotece
 ui-remove-library = Usuń z biblioteki
 ui-like = Polub
 ui-like-song = Polub utwór
-ui-dislike-song = Oceń utwór negatywnie
 ui-unlike = Cofnij polubienie
 ui-remove-dislike = Cofnij ocenę negatywną
 ui-undo = Cofnij

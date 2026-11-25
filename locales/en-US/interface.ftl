@@ -38,7 +38,6 @@ ui-save-library = Save to library
 ui-remove-library = Remove from library
 ui-like = Like
 ui-like-song = Like song
-ui-dislike-song = Dislike song
 ui-unlike = Remove like
 ui-remove-dislike = Remove dislike
 ui-undo = Undo

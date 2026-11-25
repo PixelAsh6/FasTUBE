@@ -558,7 +558,7 @@ pub fn sidebar(app: &mut App, ui: &mut Ui) {
                     ui.painter().rect_stroke(rect, 8.0, egui::Stroke::new(1.5, accent), egui::StrokeKind::Inside);
                 }
                 // Right-click: the menu a playlist's card has.
-                resp.context_menu(|ui| widgets::card_menu_contents(ui, c, false, Some(pinned), &mut app.actions));
+                resp.context_menu(|ui| widgets::card_menu_contents(ui, c, Some(pinned), &mut app.actions));
                 // Under the nav's icons, which centre on their row on a labelled rail.
                 let img_x = if item.rail_labels && t > 0.5 { rect.shrink2(vec2(item.side_margin, 0.0)).center().x } else { rect.left() + icon_x };
                 let img = Rect::from_center_size(pos2(img_x, rect.center().y), Vec2::splat(36.0));
@@ -1609,7 +1609,6 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
         // Add to playlist right after the title/artist, where the heart used to be.
         // What's heard, like Now playing's menu: a song version standing in for the music video.
         let t = &app.playing_track().cloned().unwrap_or_else(|| t.clone());
-        let liked = app.heard_liked();
         let text_end = tr.right().max(ax).min(x + w);
         let lpos = pos2(text_end + 24.0, cy);
         let lr = Rect::from_center_size(lpos, Vec2::splat(36.0));
@@ -1619,7 +1618,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
             ui.painter().set(slot, egui::epaint::RectShape::filled(block, r, theme::glass(a)));
         }
         for r in &menu_on {
-            widgets::context_popup(r).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| widgets::song_menu(ui, t, liked, None, &mut app.actions));
+            widgets::context_popup(r).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| widgets::song_menu(ui, t, None, &mut app.actions));
         }
         let aresp = ui.interact(lr, ui.scope_id().with(("add-playlist", &t.id, app.generation)), Sense::click());
         let aresp = named(aresp, crate::tr!("ui-add-playlist")).on_hover_cursor(egui::CursorIcon::PointingHand);
@@ -1636,7 +1635,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
         if !chrome.like_on_hover || on_song || ui.data(|d| d.get_temp::<bool>(open_id).unwrap_or(false)) {
             let more = widgets::more_button(ui, kr, kid, crate::tr!("ui-song-options"));
             // Up from the bar: below it is the window's edge.
-            widgets::menu_popup(&more).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).align(egui::RectAlign::TOP_START).show(|ui| widgets::song_menu(ui, t, liked, None, &mut app.actions));
+            widgets::menu_popup(&more).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).align(egui::RectAlign::TOP_START).show(|ui| widgets::song_menu(ui, t, None, &mut app.actions));
             let open = egui::Popup::is_id_open(ui.ctx(), egui::Popup::default_response_id(&more));
             ui.data_mut(|d| d.insert_temp(open_id, open));
         }

@@ -37,7 +37,6 @@ ui-save-library = Сохранить в медиатеку
 ui-remove-library = Убрать из медиатеки
 ui-like = Нравится
 ui-like-song = Поставить «Нравится»
-ui-dislike-song = Поставить «Не нравится»
 ui-unlike = Снять лайк
 ui-remove-dislike = Снять «Не нравится»
 ui-undo = Отменить

@@ -37,7 +37,6 @@ ui-save-library = บันทึกลงในห้องสมุด
 ui-remove-library = ลบออกจากไลบรารี
 ui-like = ชอบ
 ui-like-song = ชอบเพลง
-ui-dislike-song = ไม่ชอบเพลง
 ui-unlike = ลบไลค์
 ui-remove-dislike = ลบสิ่งที่ไม่ชอบ
 ui-undo = เลิกทำ

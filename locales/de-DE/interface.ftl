@@ -37,7 +37,6 @@ ui-save-library = In Mediathek speichern
 ui-remove-library = Aus Mediathek entfernen
 ui-like = Gefällt mir
 ui-like-song = Titel mit „Gefällt mir“ bewerten
-ui-dislike-song = Titel mit „Gefällt mir nicht“ bewerten
 ui-unlike = Like entfernen
 ui-remove-dislike = „Gefällt mir nicht“ entfernen
 ui-undo = Rückgängig

@@ -813,31 +813,6 @@ impl App {
         self.handoff = ending;
     }
 
-    pub(super) fn skip_disliked(&mut self) {
-        if self.jam.guest() {
-            return;
-        }
-        let generation = self.generation;
-        // With just this track in the queue, Repeat all would play it again.
-        if self.queue.repeat != Repeat::All || self.queue.tracks.len() > 1 || self.queue.fill.is_some() {
-            self.next();
-        }
-        if self.generation == generation {
-            // Nothing to advance to yet. Cancel a buffered play too, and carry on
-            // if more of the playlist or an autoplay queue arrives.
-            self.clear_staged();
-            self.generation = self.alloc_generation();
-            self.audio.status.wanted_gen.store(self.generation, Ordering::Relaxed);
-            self.audio.send(AudioCmd::Stop);
-            self.buffering = false;
-            self.seek_drag = None;
-            self.resume_at = Some(Duration::ZERO);
-            self.resume_counts = true;
-            self.ended = true;
-            self.top_up();
-        }
-    }
-
     pub(super) fn prev(&mut self) {
         if self.jam.guest() {
             return jam::request(self, crate::jam::Cmd::Prev);
