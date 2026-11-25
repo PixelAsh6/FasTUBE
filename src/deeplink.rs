@@ -1,4 +1,5 @@
-//! Jam deep links: `fastube://jam/CODE` (the `ytm-rs:` scheme still parses) and `https://grapedjuice.github.io/ytm-rs/jam/?c=CODE`.
+//! Jam deep links: `fastube://jam/CODE` (the `ytm-rs:` scheme still parses) and the
+//! invite page links, `https://pixelash6.github.io/FasTUBE/jam/?c=CODE`.
 //!
 //! Clicking a link launches a new process with the URL as its argument. If another
 //! instance is already running, the new one hands the code over a named pipe (a Unix
@@ -42,7 +43,7 @@ pub fn parse(arg: &str) -> Option<String> {
         let (path, query) = rest.split_once('?')?;
         let lower = path.to_ascii_lowercase();
         let path = lower.trim_end_matches('/').trim_end_matches("/index.html");
-        if path != "grapedjuice.github.io/ytm-rs/jam" {
+        if path != "grapedjuice.github.io/ytm-rs/jam" && path != "pixelash6.github.io/fastube/jam" {
             return None;
         }
         return query_param(query, "c").and_then(normalize);
@@ -457,6 +458,8 @@ mod tests {
         assert_eq!(parse("https://grapedjuice.github.io/ytm-rs/jam/?c=ABC234").as_deref(), Some("ABC234"));
         assert_eq!(parse("https://grapedjuice.github.io/ytm-rs/jam?c=abc234").as_deref(), Some("ABC234"));
         assert_eq!(parse("https://grapedjuice.github.io/ytm-rs/jam/index.html?x=1&c=abc234#top").as_deref(), Some("ABC234"));
+        assert_eq!(parse("https://pixelash6.github.io/FasTUBE/jam/?c=ABC234").as_deref(), Some("ABC234"));
+        assert_eq!(parse("https://pixelash6.github.io/fastube/jam?c=abc234").as_deref(), Some("ABC234"));
     }
 
     #[test]

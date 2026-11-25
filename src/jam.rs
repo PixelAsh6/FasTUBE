@@ -30,9 +30,9 @@ const SERVER: &str = "wss://fastube.thelightwolfro.workers.dev";
 pub const ALPHABET: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 pub const CODE_LEN: usize = 6;
 
-/// Link that opens the app (through the website) and joins the room.
+/// Link that opens the invite page, which opens the app with the room.
 pub fn share_link(code: &str) -> String {
-    format!("https://grapedjuice.github.io/ytm-rs/jam/?c={code}")
+    format!("https://pixelash6.github.io/FasTUBE/jam/?c={code}")
 }
 
 /// A fresh random room code.
