@@ -1993,8 +1993,8 @@ pub fn lyrics_drawer(app: &mut App, ui: &mut Ui, now: f64) {
                 let font = theme::bold(20.0);
                 // Cut at its end, which in Arabic is its left: egui's own truncation keeps the end.
                 let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ui.fonts_mut(|f| f.row_height(&font))), Sense::hover());
-                resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &label));
-                text_at(ui, r.min, &label, font, theme::text(), r.width());
+                resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, label));
+                text_at(ui, r.min, label, font, theme::text(), r.width());
             });
         });
     });
