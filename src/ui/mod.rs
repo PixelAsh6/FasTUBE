@@ -727,6 +727,8 @@ pub struct App {
     group_code: Option<String>,
     /// The jam invite's QR filling the window (click the QR in the devices menu).
     qr_screen: bool,
+    /// The page the app was on before full screen; leaving full screen returns to it.
+    fs_page: Option<Page>,
     /// Albums' release years, picked up as album pages come in, for the fullscreen
     /// song facts.
     album_years: HashMap<String, String>,
@@ -1177,6 +1179,7 @@ impl App {
             lyrics_open: false,
             fs_queue: true,
             qr_screen: false,
+            fs_page: None,
             group_code: get("group_code").filter(|v| !v.is_empty()),
             album_years: HashMap::new(),
             album_year_asked: HashSet::new(),
@@ -1592,7 +1595,9 @@ impl App {
 
     fn bar_height(&self) -> f32 {
         let c = &self.look().chrome;
-        if c.player_bar == crate::preset::PlayerBar::Floating { c.bar_height + c.bar_margin[1] } else { c.bar_height }
+        // The bar keeps its head above the cover art: never under 80 px.
+        let h = c.bar_height.max(80.0);
+        if c.player_bar == crate::preset::PlayerBar::Floating { h + c.bar_margin[1] } else { h }
     }
 
     fn toast(&mut self, msg: impl Into<String>) {

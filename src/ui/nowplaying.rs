@@ -1211,7 +1211,8 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
     let art_room_h = (col.height() - 250.0).max(160.0);
     let art_side = (col.width() - vol_w - 24.0).clamp(170.0, art_room_h.min(418.0));
     let col_cx = col.left() + vol_w + 14.0 + art_side / 2.0;
-    let art_top = col.top() + 14.0;
+    // The whole block (art, seek, transport, facts) sits in the middle of the height.
+    let art_top = ((col.top() + col.bottom()) / 2.0 - (art_side + 194.0) / 2.0).max(col.top() + 14.0);
     let art = Rect::from_min_size(pos2(col_cx - art_side / 2.0, art_top), Vec2::splat(art_side));
 
     // Vertical volume, centred on the album's vertical centre: track and fill only,
@@ -1308,24 +1309,24 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
         app.queue.repeat = app.queue.repeat.next();
     }
 
-    // Song facts under the transport: title, artist, then the album and its year
-    // with a bold central dot between them.
+    // Song facts under the transport, left-aligned with the title: title, artist,
+    // then the album and its year, grey like the artist, with a white dot between.
     let text_y = tcy + 34.0;
     let title_w = col.width() - 20.0;
-    widgets::title_at(ui, pos2(col_cx - title_w / 2.0, text_y), &track.title, track.explicit, theme::semibold(23.0), theme::text(), title_w);
+    let fx = col_cx - title_w / 2.0;
+    widgets::title_at(ui, pos2(fx, text_y), &track.title, track.explicit, theme::semibold(23.0), theme::text(), title_w);
     let artist_line = track.artist_line();
-    widgets::linked_text(ui, pos2(col_cx - title_w / 2.0, text_y + 33.0), &artist_line, &track.artists, theme::regular(16.0), theme::with_alpha(theme::text_dim(), app.look().now_playing.artist_alpha), title_w, &mut app.actions);
+    widgets::linked_text(ui, pos2(fx, text_y + 33.0), &artist_line, &track.artists, theme::regular(16.0), theme::with_alpha(theme::text_dim(), app.look().now_playing.artist_alpha), title_w, &mut app.actions);
     let year = track.album.as_ref().and_then(|a| a.id.as_deref()).and_then(|id| app.album_year(Some(id)));
     if let Some(album) = track.album.as_ref().map(|a| a.name.clone()).filter(|n| !n.trim().is_empty()) {
         let name_g = album_line_galley(ui, &album, col.width() * 0.55);
         let year_g = year.as_ref().map(|y| widgets::galley(ui, y, theme::regular(15.0), theme::text_dim(), 80.0));
         let dot_d = 5.0;
-        let total_w = name_g.size().x + 14.0 + dot_d + year_g.as_ref().map_or(0.0, |g| g.size().x);
-        let x0 = col_cx - total_w / 2.0;
+        let x0 = fx;
         let y_base = text_y + 64.0;
         ui.painter().galley(pos2(x0, y_base), name_g.clone(), theme::text_dim());
         if year_g.is_some() {
-            ui.painter().circle_filled(pos2(x0 + name_g.size().x + 7.0 + dot_d / 2.0, y_base + name_g.size().y / 2.0), dot_d / 2.0, theme::text_dim());
+            ui.painter().circle_filled(pos2(x0 + name_g.size().x + 7.0 + dot_d / 2.0, y_base + name_g.size().y / 2.0), dot_d / 2.0, Color32::WHITE);
             if let Some(g) = year_g {
                 ui.painter().galley(pos2(x0 + name_g.size().x + 14.0 + dot_d, y_base), g, theme::text_dim());
             }
@@ -1373,8 +1374,8 @@ fn fs_tbtn(ui: &mut Ui, c: egui::Pos2, glyph: char, name: &str, disc: bool, acti
 
 /// The album line, one row, cut at its end with an ellipsis when it doesn't fit.
 fn album_line_galley(ui: &Ui, text: &str, max_w: f32) -> Arc<Galley> {
-    let font = theme::regular(14.0);
-    let color = Color32::WHITE;
+    let font = theme::regular(15.0);
+    let color = theme::text_dim();
     let g = ui.painter().layout_no_wrap(text.to_owned(), font.clone(), color);
     if g.size().x <= max_w {
         return g;

@@ -606,10 +606,21 @@ impl App {
     }
 
     pub(super) fn set_fullscreen(&mut self, ctx: &egui::Context, on: bool) {
+        // Fullscreen floats over the page the app was on; leaving it returns there,
+        // never to the windowed Now playing (it doesn't exist as a page here).
+        if on && !self.fullscreen {
+            self.fs_page = Some(self.page.clone());
+        }
         self.fullscreen = on;
         self.video_full = false;
         // A seek dragged when the view changed under it ends, and the cover player starts out shown.
         self.seek_drag = None;
+        if !on
+            && let Some(p) = self.fs_page.take()
+        {
+            self.np_open = false;
+            self.go(p);
+        }
         super::nowplaying::wake_cover_player(ctx);
         // Windows: in one step, without winit's unthemed-frame flash.
         if !crate::fullscreen::set(on) {

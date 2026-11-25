@@ -1253,7 +1253,7 @@ impl Default for Chrome {
             glass: 1.0,
             radius: 18.0,
             player_bar: PlayerBar::Docked,
-            bar_height: 72.0,
+            bar_height: 80.0,
             bar_radius: 18.0,
             bar_color: String::new(),
             bar_margin: [14.0, 14.0],

@@ -1234,14 +1234,7 @@ fn tempo_button(app: &mut App, ui: &mut Ui, r: Rect, rest: f32, accent: Color32,
 
 pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let full = ui.max_rect();
-    // A click on the bar's empty space opens Now playing, or closes it, as on the website.
-    // Registered first, so everything on the bar keeps its own clicks.
-    if ui.interact(full, ui.scope_id().with("bar-np"), Sense::click()).clicked() {
-        app.actions.push(Action::OpenNowPlaying(!app.np_open));
-    }
-    // A finger swiping up the bar opens it too, and down closes it.
-    super::bar_swipe::swipe(app, ui.ctx(), full, "bar", None);
-    // A floating bar is rounded: keep the progress line clear of its corners.
+    // The bar's empty space does nothing: its widgets own every click.
     let look = app.look();
     let inset = if look.chrome.player_bar == crate::preset::PlayerBar::Floating { look.chrome.bar_radius.min(full.height() / 2.0) } else { 0.0 };
     let inset = inset.max(look.chrome.progress_inset);
@@ -1437,7 +1430,7 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let time_w = time_g.as_ref().map_or(0.0, |_| time_galley(0.0, true).size().x);
     // Where the song starts: at the left, or just right of the left-hand transport, the
     // middle of what's left then being about the bar's.
-    let art_side = chrome.thumb_px.unwrap_or(full.height() - 26.0).clamp(28.0, 64.0);
+    let art_side = chrome.thumb_px.unwrap_or(full.height() - 26.0).clamp(28.0, (full.height() - 12.0).max(28.0));
     let song_tail = 80.0;
     // How wide the longer of the title and byline really is, buttons excluded.
     let song_text = track.as_ref().map_or(0.0, |t| {
