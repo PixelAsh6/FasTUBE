@@ -17,6 +17,8 @@ settings-keyboard-shortcuts = Keyboard shortcuts
 settings-about = About
 settings-no-match = No settings match "{ $query }"
 settings-title = Settings
+settings-group-code = Device group code
+settings-group-code-desc = Join the same room automatically when FasTUBE starts: every device with the same code shares one queue and steers one playback. Leave empty for none.
 settings-search-box = Search settings
 settings-clear = Clear
 
