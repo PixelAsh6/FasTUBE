@@ -1204,15 +1204,16 @@ fn cover_glyph(ui: &Ui, c: egui::Pos2, glyph: char, px: f32, key: &str, name: &s
 fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::Track, _no_lyrics: bool, now: f64) {
     let queue_w = 340.0;
     let queue_on = app.fs_queue && content.width() >= queue_w + 520.0;
-
-    // With the queue closed the album side grows and the lyrics sit a step into the
-    // gap, not against the screen's right edge.
-    let col = Rect::from_min_max(content.min, pos2(content.left() + (content.width() * if queue_on { 0.33 } else { 0.42 }).clamp(if queue_on { 330.0 } else { 400.0 }, if queue_on { 506.0 } else { 640.0 }), content.bottom()));
+    // The queue's panel glides: one eased 0..1 value drives every size below, so the
+    // album grows and the lyrics step over instead of jumping when it toggles.
+    let qt = theme::anim_bool(ui.ctx(), ui.scope_id().with("fs-queue-t"), queue_on, 0.35);
+    let mix = |a: f32, b: f32| a + (b - a) * qt;
+    let col_w = (content.width() * mix(0.42, 0.33)).clamp(mix(400.0, 330.0), mix(640.0, 506.0));
+    let col = Rect::from_min_max(content.min, pos2(content.left() + col_w, content.bottom()));
     let col = col.shrink2(egui::vec2(24.0, 12.0));
     let vol_w = 28.0;
     let art_room_h = (col.height() - 250.0).max(160.0);
-    let art_cap = if queue_on { 418.0 } else { 560.0 };
-    let art_side = (col.width() - vol_w - 24.0).clamp(170.0, art_room_h.min(art_cap));
+    let art_side = (col.width() - vol_w - 24.0).clamp(170.0, art_room_h.min(mix(560.0, 418.0)));
     let col_cx = col.left() + vol_w + 14.0 + art_side / 2.0;
     // The whole block (art, seek, transport, facts) sits in the middle of the height.
     let art_top = ((col.top() + col.bottom()) / 2.0 - (art_side + 194.0) / 2.0).max(col.top() + 14.0);
@@ -1338,23 +1339,22 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
 
     // Middle: the lyrics, one width whether the queue shows or not (so lines wrap the
     // same); with the queue closed the same panel sits a step into the gap, never over
-    // the album column: when the gap is tight it gives up width instead.
+    // the album column: when the gap is tight it gives up width instead. The whole
+    // rect glides with the queue's panel.
     let base_col_right = content.left() + (content.width() * 0.33).clamp(330.0, 506.0);
-    let lyr_right = content.right() - if queue_on { queue_w + 12.0 } else { 0.0 };
-    let lyr_w = (lyr_right - (base_col_right + 24.0)).max(300.0);
-    let mid = if queue_on {
-        Rect::from_min_max(pos2(col.right() + 24.0, content.top()), pos2(lyr_right, content.bottom()))
-    } else {
-        let x0 = col.right() + 24.0 + (content.right() - col.right() - 24.0) * 0.18;
-        Rect::from_min_max(pos2(x0, content.top()), pos2((x0 + lyr_w).min(lyr_right), content.bottom()))
-    };
+    let lyr_w = ((content.right() - queue_w - 12.0) - (base_col_right + 24.0)).max(300.0);
+    let x0 = col.right() + 24.0 + (content.right() - col.right() - 24.0) * 0.18 * (1.0 - qt);
+    let x1 = mix((x0 + lyr_w).min(content.right()), content.right() - queue_w - 12.0);
+    let mid = Rect::from_min_max(pos2(x0, content.top()), pos2(x1, content.bottom()));
     let mut mui = ui.new_child(egui::UiBuilder::new().max_rect(mid));
     mui.set_clip_rect(mid.intersect(ui.clip_rect()));
     lyrics_panel(app, &mut mui, mid.shrink2(egui::vec2(16.0, 8.0)), now, false, 0.75);
 
-    // Right: Up next, headed like the drawer's.
-    if queue_on {
-        let q = Rect::from_min_max(pos2(content.right() - queue_w, content.top()), content.max);
+    // Right: Up next, headed like the drawer's. It slides in from the edge and out
+    // again with the same eased value.
+    if qt > 0.001 {
+        let qx = mix(content.right(), content.right() - queue_w);
+        let q = Rect::from_min_max(pos2(qx, content.top()), content.max);
         let mut qui = ui.new_child(egui::UiBuilder::new().max_rect(q));
         qui.set_clip_rect(q.intersect(ui.clip_rect()));
         qui.horizontal(|ui| {
