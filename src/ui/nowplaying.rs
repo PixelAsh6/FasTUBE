@@ -337,7 +337,8 @@ fn body(app: &mut App, ui: &mut Ui, now: f64) {
     if hide && !quiet {
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(500));
     }
-    if app.fullscreen && look.now_playing.fullscreen_progress_px > 0.0 {
+    let fs_columns_layout = app.fullscreen && content.width() >= 1000.0 && video.is_none();
+    if app.fullscreen && !fs_columns_layout && look.now_playing.fullscreen_progress_px > 0.0 {
         fullscreen_progress(app, ui, ui.ctx().content_rect(), look.now_playing.fullscreen_progress_px);
     }
     np_content(app, ui, content, &track, video.as_ref(), video_lyrics, no_lyrics, now);
@@ -1199,31 +1200,127 @@ fn cover_glyph(ui: &Ui, c: egui::Pos2, glyph: char, px: f32, key: &str, name: &s
 /// The fullscreen three columns: cover, title, artists and "Album - Year" on the left,
 /// lyrics in the middle a step smaller so more of the song fits, Up next on the right
 /// while `app.fs_queue`.
-fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::Track, no_lyrics: bool, now: f64) {
+/// The fullscreen layout: on the left a vertical volume, the album art with the seek
+/// bar and the transport under it (all always on), then the song facts with the
+/// album and its year behind a bold dot; lyrics in the middle a step smaller; Up
+/// next on the right while `app.fs_queue`.
+fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::Track, _no_lyrics: bool, now: f64) {
     let queue_w = 340.0;
     let queue_on = app.fs_queue && content.width() >= queue_w + 520.0;
-    // Left: the cover with the song facts under it, the album's year at the bottom.
+
     let col = Rect::from_min_max(content.min, pos2(content.left() + (content.width() * 0.3).clamp(300.0, 460.0), content.bottom()));
-    let col = col.shrink2(egui::vec2(24.0, 10.0));
-    let col_cover = Rect::from_min_max(col.min, pos2(col.max.x, col.max.y - 46.0));
-    let px = (art_side(&app.look().cover, col_cover, true, ui.ctx().content_rect().width()) * ui.ctx().pixels_per_point()) as u32;
-    let artist_alpha = app.look().now_playing.artist_alpha;
-    let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(col));
-    cover_column(app, &mut cui, col_cover, track, no_lyrics, now, px, None);
-    let year = track.album.as_ref().and_then(|a| a.id.as_deref()).and_then(|id| app.album_year(Some(id)));
-    if let Some(name) = track.album.as_ref().map(|a| match &year {
-        Some(y) => format!("{} - {y}", a.name),
-        None => a.name.clone(),
-    }).filter(|line| !line.trim().is_empty()) {
-        let g = album_line_galley(&cui, &name, col.width() - 16.0);
-        let color = theme::with_alpha(theme::text_dim(), artist_alpha);
-        cui.painter().galley(pos2(col.center().x - g.size().x / 2.0, col.bottom() - 22.0 - g.size().y / 2.0), g, color);
+    let col = col.shrink2(egui::vec2(24.0, 12.0));
+    let vol_w = 26.0;
+    let art_room_h = (col.height() - 250.0).max(160.0);
+    let art_side = (col.width() - vol_w - 24.0).min(art_room_h).min(380.0).max(160.0);
+    let col_cx = col.left() + vol_w + 14.0 + art_side / 2.0;
+    let art_top = col.top() + 14.0;
+    let art = Rect::from_min_size(pos2(col_cx - art_side / 2.0, art_top), Vec2::splat(art_side));
+
+    // Vertical volume, tall as the album: drag, click, or wheel over it.
+    let vol_rect = Rect::from_min_max(pos2(col.left() + 6.0, art_top), pos2(col.left() + 6.0 + vol_w, art.bottom()));
+    let vresp = ui.interact(vol_rect, ui.scope_id().with("fs-vol"), Sense::click_and_drag());
+    let vresp = widgets::named(vresp, crate::tr!("ui-volume")).on_hover_cursor(egui::CursorIcon::PointingHand);
+    if (vresp.dragged() || vresp.clicked())
+        && let Some(p) = vresp.interact_pointer_pos()
+    {
+        app.audio.set_volume((1.0 - (p.y - vol_rect.top()) / vol_rect.height()).clamp(0.0, 1.0));
     }
+    if vresp.hovered() {
+        let scroll = ui.input(|i| i.smooth_scroll_delta.y);
+        if scroll != 0.0 {
+            app.audio.set_volume((app.audio.volume() + scroll / 600.0).clamp(0.0, 1.0));
+        }
+    }
+    let vol_now = app.audio.volume();
+    let vp = ui.painter().clip_rect().intersect(vol_rect);
+    let track_x = vp.center().x;
+    ui.painter().rect_filled(Rect::from_min_max(pos2(track_x - 2.0, vp.top() + 4.0), pos2(track_x + 2.0, vp.bottom() - 4.0)), 2.0, theme::glass(0.15));
+    let fill_bottom = vp.bottom() - 4.0;
+    let fill_h = (vp.height() - 8.0) * vol_now;
+    ui.painter().rect_filled(Rect::from_min_max(pos2(track_x - 2.0, fill_bottom - fill_h), pos2(track_x + 2.0, fill_bottom)), 2.0, theme::text_dim());
+    ui.painter().circle_filled(pos2(track_x, fill_bottom - fill_h), 5.0, theme::text());
+
+    // Album art: rounded, shadowed, animated cover over the still one.
+    let cs = &app.look().cover;
+    let ppp = ui.ctx().pixels_per_point();
+    let radius = (art_side * 0.035).clamp(6.0, 20.0);
+    widgets::soft_shadow(ui, art, radius, cs.shadow_blur, cs.shadow.min(1.0));
+    widgets::paint_cover_px(ui, art, &track.thumbs, radius, 1.0, (art_side * ppp) as u32);
+    if let Some((tex, shown)) = cover_clip(app, ui.ctx(), track, (art_side * ppp) as u32, now) {
+        egui::Image::from_texture(&tex).corner_radius(egui::CornerRadius::same(radius.min(255.0) as u8)).tint(Color32::WHITE.gamma_multiply(shown)).paint_at(ui, art);
+    }
+
+    // Seek bar, exactly as wide as the art, with the times on it.
+    let status = app.audio.status.clone();
+    let total = status.duration().map_or(0.0, |d| d.as_secs_f32());
+    let pos = app.seek_drag.unwrap_or(status.position_smooth().as_secs_f32()).min(total.max(0.0));
+    let bar = Rect::from_min_max(pos2(art.left(), art.bottom() + 22.0), pos2(art.right(), art.bottom() + 34.0));
+    let sresp = ui.interact(bar, ui.scope_id().with("fs-seek"), Sense::click());
+    let sresp = widgets::named(sresp, crate::tr!("ui-seek")).on_hover_cursor(egui::CursorIcon::PointingHand);
+    app.seek_wheel.hover(&sresp);
+    ui.painter().rect_filled(bar, 3.0, theme::with_alpha(Color32::WHITE, 0.12));
+    if total > 0.0 {
+        ui.painter().rect_filled(Rect::from_min_size(bar.min, vec2(bar.width() * pos / total, bar.height())), 3.0, theme::with_alpha(Color32::WHITE, 0.32));
+        ui.painter().circle_filled(pos2(bar.left() + bar.width() * (pos / total), bar.center().y), 4.0, Color32::WHITE);
+    }
+    let sfont = theme::semibold(11.0);
+    widgets::time_at(ui, pos2(bar.left() + 12.0, bar.center().y), egui::Align2::LEFT_CENTER, &super::fmt_time(pos as u32), sfont.clone(), Color32::WHITE);
+    widgets::time_at(ui, pos2(bar.right() - 12.0, bar.center().y), egui::Align2::RIGHT_CENTER, &super::fmt_end(pos, total, app.time_left), sfont, Color32::WHITE);
+    if sresp.clicked()
+        && let Some(p) = sresp.interact_pointer_pos()
+    {
+        app.seek_drag = None;
+        app.actions.push(Action::Seek(((p.x - bar.left()) / bar.width()).clamp(0.0, 1.0) * total));
+    }
+
+    // Transport under the seek bar, always on.
+    let playing = app.playing() || app.buffering;
+    let tcy = bar.bottom() + 38.0;
+    let tcol = pos2(col_cx, tcy);
+    let prev_r = fs_tbtn(ui, pos2(tcol.x - 58.0, tcy), icon::SKIP_BACK, crate::tr!("ui-previous"), false);
+    let play_r = fs_tbtn(ui, tcol, if playing { icon::PAUSE } else { icon::PLAY }, if playing { crate::tr!("ui-pause") } else { crate::tr!("ui-play") }, true);
+    let next_r = fs_tbtn(ui, pos2(tcol.x + 58.0, tcy), icon::SKIP_FORWARD, crate::tr!("ui-next"), false);
+    if prev_r.clicked() {
+        app.prev();
+    }
+    if play_r.clicked() {
+        app.actions.push(Action::TogglePlay);
+    }
+    if next_r.clicked() {
+        app.next();
+    }
+
+    // Song facts under the transport: title, artist, then the album and its year
+    // with a bold central dot between them.
+    let text_y = tcy + 34.0;
+    let title_w = col.width() - 20.0;
+    widgets::title_at(ui, pos2(col_cx - title_w / 2.0, text_y), &track.title, track.explicit, theme::semibold(21.0), theme::text(), title_w);
+    let artist_line = track.artist_line();
+    widgets::linked_text(ui, pos2(col_cx - title_w / 2.0, text_y + 30.0), &artist_line, &track.artists, theme::regular(14.5), theme::with_alpha(theme::text_dim(), app.look().now_playing.artist_alpha), title_w, &mut app.actions);
+    let year = track.album.as_ref().and_then(|a| a.id.as_deref()).and_then(|id| app.album_year(Some(id)));
+    if let Some(album) = track.album.as_ref().map(|a| a.name.clone()).filter(|n| !n.trim().is_empty()) {
+        let name_g = album_line_galley(ui, &album, col.width() * 0.55);
+        let year_g = year.as_ref().map(|y| widgets::galley(ui, y, theme::regular(13.5), theme::text_dim(), 80.0));
+        let dot_d = 5.0;
+        let total_w = name_g.size().x + 14.0 + dot_d + year_g.as_ref().map_or(0.0, |g| g.size().x);
+        let x0 = col_cx - total_w / 2.0;
+        let y_base = text_y + 58.0;
+        ui.painter().galley(pos2(x0, y_base), name_g.clone(), theme::text_dim());
+        if year_g.is_some() {
+            ui.painter().circle_filled(pos2(x0 + name_g.size().x + 7.0 + dot_d / 2.0, y_base + name_g.size().y / 2.0), dot_d / 2.0, theme::text_dim());
+            if let Some(g) = year_g {
+                ui.painter().galley(pos2(x0 + name_g.size().x + 14.0 + dot_d, y_base), g, theme::text_dim());
+            }
+        }
+    }
+
     // Middle: the lyrics.
     let mid = Rect::from_min_max(pos2(col.right() + 12.0, content.top()), pos2(if queue_on { content.right() - queue_w - 12.0 } else { content.right() }, content.bottom()));
     let mut mui = ui.new_child(egui::UiBuilder::new().max_rect(mid));
     mui.set_clip_rect(mid.intersect(ui.clip_rect()));
     lyrics_panel(app, &mut mui, mid.shrink2(egui::vec2(16.0, 8.0)), now, false, 0.75);
+
     // Right: Up next, headed like the drawer's.
     if queue_on {
         let q = Rect::from_min_max(pos2(content.right() - queue_w, content.top()), content.max);
@@ -1236,6 +1333,22 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
         qui.add_space(6.0);
         super::shell::queue_list(app, &mut qui, "fs");
     }
+}
+
+/// One transport button in the fullscreen layout: circle, icon, hover lift.
+fn fs_tbtn(ui: &mut Ui, c: egui::Pos2, glyph: char, name: &str, disc: bool) -> egui::Response {
+    let size = if disc { 46.0 } else { 40.0 };
+    let r = Rect::from_center_size(c, Vec2::splat(size));
+    let resp = widgets::named(ui.interact(r, ui.scope_id().with(("fs-t", name)), Sense::click()), name).on_hover_text(name).on_hover_cursor(egui::CursorIcon::PointingHand);
+    let h = theme::anim_bool(ui.ctx(), resp.id.with("h"), resp.hovered(), 0.15);
+    if disc {
+        ui.painter().circle_filled(r.center(), size / 2.0 * (1.0 + 0.05 * h), theme::text());
+        widgets::icon_at(ui, r.center(), glyph, 20.0, if theme::light() { theme::text() } else { Color32::from_rgb(20, 20, 24) });
+    } else {
+        ui.painter().circle_filled(r.center(), size / 2.0, theme::glass(0.08 * h));
+        widgets::icon_at(ui, r.center(), glyph, 19.0, theme::text());
+    }
+    resp
 }
 
 /// The album line, one row, cut at its end with an ellipsis when it doesn't fit.
