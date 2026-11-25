@@ -926,11 +926,13 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
             dim(ui, &crate::tr!("jam-listening-count", count = app.jam.member_count()));
         }
     });
-    // The invite as a QR, clicked to fill the window: one square, as wide as the
-    // section's other elements, so no wide white margins appear beside it.
+    // The invite as a QR, clicked to fill the window: one square on the section's own
+    // width, measured the way the device rows above measure theirs, so the plate and
+    // the rows line up.
     if let Some(code) = &code {
         ui.add_space(8.0);
-        let (qr_rect, qr) = ui.allocate_exact_size(Vec2::splat(inner), Sense::click());
+        let side = ui.available_width();
+        let (qr_rect, qr) = ui.allocate_exact_size(Vec2::splat(side), Sense::click());
         let qr = named(qr, crate::tr!("jam-scan-title")).on_hover_cursor(egui::CursorIcon::PointingHand);
         qr_paint(ui, qr_rect, &crate::jam::share_link(code));
         if qr.clicked() {
