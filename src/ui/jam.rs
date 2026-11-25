@@ -846,8 +846,6 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     ui.label(egui::RichText::new(crate::tr!("nav-listen-together")).font(theme::bold(14.5)).color(theme::text_dim()));
     ui.add_space(4.0);
     if !app.jam.active() {
-        ui.add_space(4.0);
-        dim(ui, crate::tr!("jam-intro"));
         ui.add_space(8.0);
         let mut go = false;
         ui.allocate_ui_with_layout(vec2(inner, 34.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {

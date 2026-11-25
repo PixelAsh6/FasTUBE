@@ -215,11 +215,9 @@ fn main() -> eframe::Result {
             theme::follow_system_scheme(wake);
             // Whether song notifications can show here (Windows: a Start menu entry).
             notify::look_up();
-            // Keep `fastube:` links pointing at this copy; dev builds leave it alone
-            // (even with YTM_UPDATE_FORCE).
-            if update::installed() && !cfg!(debug_assertions) {
-                deeplink::register_protocol();
-            }
+            // Keep `fastube:` links pointing at this copy. Dev builds register too:
+            // sent jam links must join the running app, whatever build it is.
+            deeplink::register_protocol();
 
             let volume = cc
                 .storage
