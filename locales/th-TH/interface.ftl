@@ -77,7 +77,6 @@ ui-find-list = ค้นหาในรายการนี้
 ui-sort = เรียงลำดับ
 ui-sort-by = ประเภท: { $name }
 ui-sorting = กำลังเรียงลำดับ...
-ui-recently-liked = ชอบล่าสุด
 ui-recently-played = เพิ่งเล่น
 ui-recently-added = เพิ่มล่าสุด
 ui-custom-order = สั่งทำพิเศษ

@@ -2005,9 +2005,7 @@ fn playing_from(app: &mut App, ui: &mut Ui) {
         ui.painter().hline(r.x_range(), r.bottom(), egui::Stroke::new(1.0, theme::text()));
     }
     if resp.clicked() {
-        // Liked Music is Library › Songs, where it was played from.
-        let liked = matches!(&target, Target::Playlist(id) if id == super::lists::LIKED_MUSIC);
-        app.actions.push(if liked { Action::Go(Page::Library(LibTab::Songs)) } else { Action::Open(target) });
+        app.actions.push(Action::Open(target));
     }
     ui.add_space(8.0);
 }

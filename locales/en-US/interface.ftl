@@ -78,7 +78,6 @@ ui-find-list = Find in this list
 ui-sort = Sort
 ui-sort-by = Sort: { $name }
 ui-sorting = Sorting…
-ui-recently-liked = Recently liked
 ui-recently-played = Recently played
 ui-recently-added = Recently added
 ui-custom-order = Custom order

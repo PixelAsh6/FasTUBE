@@ -77,7 +77,6 @@ ui-find-list = 在此清單中尋找
 ui-sort = 排序
 ui-sort-by = 排序：{ $name }
 ui-sorting = 排序...
-ui-recently-liked = 最近喜歡
 ui-recently-played = 最近玩過
 ui-recently-added = 最近新增
 ui-custom-order = 客製訂單

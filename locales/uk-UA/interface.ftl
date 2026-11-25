@@ -77,7 +77,6 @@ ui-find-list = Пошук у списку
 ui-sort = Сортування
 ui-sort-by = Сортування: { $name }
 ui-sorting = Сортування…
-ui-recently-liked = Нещодавно вподобані
 ui-recently-played = Нещодавно прослухані
 ui-recently-added = Нещодавно додані
 ui-custom-order = Власний порядок

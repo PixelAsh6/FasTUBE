@@ -7,7 +7,7 @@ use egui::{Align2, Color32, Rect, RichText, Sense, Ui, pos2, vec2};
 
 use super::pages::{filter_show, page_title, setting_row, settings_card, settings_section as section};
 use super::widgets::{self, icon_at, named, paint_cover, pill, text_at};
-use super::{Action, App, LibTab, Page};
+use super::{Action, App, Page};
 use crate::model::{Target, Thumb, Track as YtTrack};
 use crate::theme::{self, icon};
 use crate::transfer::spotify::{Entry, Source, Track};
@@ -1348,7 +1348,6 @@ fn done(app: &mut App, ui: &mut Ui) {
         });
     }
     let first_playlist = sum.playlists.first().cloned();
-    let dest = job.dest.clone();
     drop(guard);
     if let Some(text) = copy {
         ui.ctx().copy_text(text);
@@ -1357,12 +1356,10 @@ fn done(app: &mut App, ui: &mut Ui) {
     if let Some(q) = search {
         app.actions.push(Action::Go(Page::Search(q)));
     }
-    if open {
-        match (dest, first_playlist) {
-            (Dest::Liked, _) => app.actions.push(Action::Go(Page::Library(LibTab::Songs))),
-            (_, Some(id)) => app.actions.push(Action::Open(Target::Playlist(id))),
-            _ => {}
-        }
+    if open
+        && let Some(id) = first_playlist
+    {
+        app.actions.push(Action::Open(Target::Playlist(id)));
     }
     if another {
         xfer.dismiss();

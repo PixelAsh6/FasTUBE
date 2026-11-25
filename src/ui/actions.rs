@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use crate::backend::{Req, UnlikeVersions};
 use crate::model::{Target, Track};
 
-use super::lists::{self, LIBRARY_SONGS, LIKED_MUSIC};
+use super::lists::{self, LIBRARY_SONGS};
 use super::queue::QueueFill;
 use super::undo::Undo;
 use super::{Action, App, Dialog, LibTab, NpTab, Page, Unlike, jam, palette, transfer};
@@ -386,7 +386,6 @@ impl App {
         match &self.page {
             Page::Album(id) => Some(Target::Album(id.clone())),
             Page::Playlist(id) => Some(Target::Playlist(id.clone())),
-            Page::Library(LibTab::Songs) => Some(Target::Playlist(LIKED_MUSIC.into())),
             Page::Library(LibTab::Saved) => Some(Target::Playlist(LIBRARY_SONGS.into())),
             Page::Artist(id) => Some(Target::Artist(id.clone())),
             _ => None,

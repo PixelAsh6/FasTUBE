@@ -77,7 +77,6 @@ ui-find-list = Bu listede bulun
 ui-sort = Sırala
 ui-sort-by = Sırala: { $name }
 ui-sorting = Sıralanıyor…
-ui-recently-liked = En son beğenilenler
 ui-recently-played = Son oynatılanlar
 ui-recently-added = Son eklenen
 ui-custom-order = Özel sipariş

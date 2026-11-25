@@ -77,7 +77,6 @@ ui-find-list = この一覧を検索
 ui-sort = 並べ替え
 ui-sort-by = 並べ替え：{ $name }
 ui-sorting = 並べ替え中…
-ui-recently-liked = 最近高く評価した順
 ui-recently-played = 最近再生した順
 ui-recently-added = 最近追加した順
 ui-custom-order = カスタム順

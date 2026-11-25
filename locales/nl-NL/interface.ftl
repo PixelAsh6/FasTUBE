@@ -77,7 +77,6 @@ ui-find-list = Zoeken in deze lijst
 ui-sort = Sorteren
 ui-sort-by = Sortering: { $name }
 ui-sorting = Sorteren…
-ui-recently-liked = Onlangs geliket
 ui-recently-played = Onlangs afgespeeld
 ui-recently-added = Onlangs toegevoegd
 ui-custom-order = Eigen volgorde

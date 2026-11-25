@@ -77,7 +77,6 @@ ui-find-list = 이 목록에서 찾기
 ui-sort = 정렬
 ui-sort-by = 정렬: { $name }
 ui-sorting = 정렬 중…
-ui-recently-liked = 최근 좋아요를 누른 사람
 ui-recently-played = 최근 플레이한 곡
 ui-recently-added = 최근 추가된 내용
 ui-custom-order = 맞춤주문

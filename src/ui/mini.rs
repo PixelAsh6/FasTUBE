@@ -1364,10 +1364,8 @@ fn card_body(app: &mut App, ui: &mut Ui, cr: Rect, now: f64) {
                     ui.painter().hline(nr.x_range(), nr.bottom(), egui::Stroke::new(1.0, theme::text()));
                 }
                 if resp.clicked() {
-                    // Liked Music is Library › Songs, where it was played from.
-                    let liked = matches!(&target, crate::model::Target::Playlist(id) if id == super::lists::LIKED_MUSIC);
                     app.actions.push(Action::Mini(false));
-                    app.actions.push(if liked { Action::Go(super::Page::Library(super::LibTab::Songs)) } else { Action::Open(target) });
+                    app.actions.push(Action::Open(target));
                 }
             }
             None => {

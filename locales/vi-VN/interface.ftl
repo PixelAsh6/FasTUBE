@@ -77,7 +77,6 @@ ui-find-list = Tìm trong danh sách này
 ui-sort = Sắp xếp
 ui-sort-by = Sắp xếp: { $name }
 ui-sorting = Đang sắp xếp…
-ui-recently-liked = Đã thích gần đây
 ui-recently-played = Đã chơi gần đây
 ui-recently-added = Đã thêm gần đây
 ui-custom-order = Đơn hàng tùy chỉnh

@@ -354,9 +354,7 @@ fn sort_options(page: &Page) -> Vec<(Sort, &'static str)> {
     // look can't be used: past the first 100 songs its pages come back unsorted. (Your own
     // playlists use its menu instead, which saves the order: see `saved_sort_pill`.)
     let (own, newest_first) = match page {
-        Page::Playlist(id) if id == super::LIKED_MUSIC => (crate::tr!("ui-recently-liked"), true),
         Page::Playlist(_) => (crate::tr!("ui-custom-order"), false),
-        Page::Library(LibTab::Songs) => (crate::tr!("ui-recently-liked"), true),
         Page::Library(LibTab::Saved) => (crate::tr!("ui-recently-added"), true),
         Page::Library(LibTab::History) => (crate::tr!("ui-recently-played"), true),
         Page::Library(LibTab::Uploads) => (crate::tr!("ui-recently-added"), true),
@@ -436,7 +434,6 @@ fn selectable<'a>(app: &'a App, page: &Page) -> Option<(&'a [Track], bool)> {
         Page::Album(id) | Page::Playlist(id) => {
             app.opened(id).map(|o| &o.c).map(|c| (c.tracks.as_slice(), app.logged_in && c.owned && !c.is_album))
         }
-        Page::Library(LibTab::Songs) => app.opened(super::LIKED_MUSIC).map(|o| (o.c.tracks.as_slice(), false)),
         Page::Library(LibTab::Saved) => app.opened(super::LIBRARY_SONGS).map(|o| (o.c.tracks.as_slice(), false)),
         Page::Library(LibTab::History) => app.history.as_deref().map(|h| (h, false)),
         Page::Library(LibTab::Uploads) => app.uploads.as_deref().map(|u| (u, false)),
@@ -1476,9 +1473,9 @@ fn library(app: &mut App, ui: &mut Ui, tab: LibTab, now: f64) {
             }
             list(ui, &rows, &app.liked, songs, true, plain, ListCtx { sel: &mut app.selection, find: &app.find, drag: &mut app.row_drag, movable: false, page: &app.page, own: false }, &mut app.actions);
         }
-        // Liked Music, and the songs saved to the library: kept like any playlist.
-        LibTab::Songs | LibTab::Saved => {
-            let id = if tab == LibTab::Songs { super::LIKED_MUSIC } else { super::LIBRARY_SONGS };
+        // The songs saved to the library: kept like any playlist.
+        LibTab::Saved => {
+            let id = super::LIBRARY_SONGS;
             if app.opened(id).is_none() {
                 placeholder(app, ui, now, 1, 48.0);
                 return;
@@ -1520,7 +1517,7 @@ fn library(app: &mut App, ui: &mut Ui, tab: LibTab, now: f64) {
                 LibTab::Albums => &lib.albums,
                 LibTab::Artists => &lib.artists,
                 LibTab::Podcasts => &lib.podcasts,
-                LibTab::Songs | LibTab::Saved | LibTab::History | LibTab::Uploads | LibTab::Downloads => unreachable!(),
+                LibTab::Saved | LibTab::History | LibTab::Uploads | LibTab::Downloads => unreachable!(),
             };
             let page = &app.page;
             ui.horizontal(|ui| {

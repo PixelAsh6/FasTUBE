@@ -77,7 +77,6 @@ ui-find-list = Cari di daftar ini
 ui-sort = Urutkan
 ui-sort-by = Urutan: { $name }
 ui-sorting = Mengurutkan…
-ui-recently-liked = Baru disukai
 ui-recently-played = Baru diputar
 ui-recently-added = Baru ditambahkan
 ui-custom-order = Urutan kustom

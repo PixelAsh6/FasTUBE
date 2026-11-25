@@ -92,8 +92,6 @@ pub enum LibTab {
     Playlists,
     /// Every song saved to the library (`LIBRARY_SONGS`), as the website's Songs.
     Saved,
-    /// Liked songs: the Liked Music playlist.
-    Songs,
     Albums,
     /// Subscribed artists.
     Artists,
@@ -106,8 +104,8 @@ pub enum LibTab {
 }
 
 impl LibTab {
-    pub(super) const ALL: [Self; 9] = [
-        Self::Playlists, Self::Saved, Self::Songs, Self::Albums, Self::Artists,
+    pub(super) const ALL: [Self; 8] = [
+        Self::Playlists, Self::Saved, Self::Albums, Self::Artists,
         Self::Podcasts, Self::History, Self::Uploads, Self::Downloads,
     ];
 
@@ -115,7 +113,6 @@ impl LibTab {
         match self {
             Self::Playlists => crate::tr!("nav-playlists"),
             Self::Saved => crate::tr!("nav-songs"),
-            Self::Songs => crate::tr!("nav-liked-songs"),
             Self::Albums => crate::tr!("nav-albums"),
             Self::Artists => crate::tr!("nav-artists"),
             Self::Podcasts => crate::tr!("nav-podcasts"),
@@ -139,12 +136,11 @@ pub use mini::{init_pill, set_hwnd as set_mini_hwnd};
 
 /// Settings › General › Window › Open on: the pages the app can start on, as saved and
 /// as listed.
-pub(super) const START_PAGES: [(&str, Page); 11] = [
+pub(super) const START_PAGES: [(&str, Page); 10] = [
     ("home", Page::Home),
     ("explore", Page::Explore),
     ("library", Page::Library(LibTab::Playlists)),
     ("songs", Page::Library(LibTab::Saved)),
-    ("liked", Page::Library(LibTab::Songs)),
     ("albums", Page::Library(LibTab::Albums)),
     ("artists", Page::Library(LibTab::Artists)),
     ("podcasts", Page::Library(LibTab::Podcasts)),
@@ -1263,7 +1259,6 @@ impl App {
             Ok("artists") => app.go(Page::Library(LibTab::Artists)),
             Ok("uploads") => app.go(Page::Library(LibTab::Uploads)),
             Ok("songs") => app.go(Page::Library(LibTab::Saved)),
-            Ok("liked") => app.go(Page::Library(LibTab::Songs)),
             Ok("history") => app.go(Page::Library(LibTab::History)),
             Ok("downloads") => app.go(Page::Library(LibTab::Downloads)),
             Ok("settings") => app.go(Page::Settings),
@@ -1374,7 +1369,7 @@ impl App {
     /// it is until the new data arrives. Unlike a visit, it also reloads a list kept from
     /// the last few minutes and the search already shown.
     fn refresh(&mut self) {
-        let liked_out = matches!(self.page, Page::Library(LibTab::Songs | LibTab::Saved)) && !self.logged_in;
+        let liked_out = matches!(self.page, Page::Library(LibTab::Saved)) && !self.logged_in;
         if let Some(id) = self.page_list().filter(|_| !liked_out).map(str::to_owned)
             && let Some(s) = self.lists.load(&id, matches!(self.page, Page::Album(_)), false)
         {
@@ -1433,12 +1428,6 @@ impl App {
             Page::Artist(id) => Some(Req::Artist(id.clone())),
             Page::Library(LibTab::History) if self.logged_in => Some(Req::History),
             Page::Library(LibTab::Uploads) if self.logged_in => Some(Req::Uploads),
-            Page::Library(LibTab::Songs) => {
-                if self.logged_in {
-                    self.visit_list(LIKED_MUSIC, false);
-                }
-                None
-            }
             Page::Library(LibTab::Saved) => {
                 if self.logged_in {
                     self.visit_list(LIBRARY_SONGS, false);
@@ -1463,7 +1452,6 @@ impl App {
             Page::Artist(id) => self.artist.as_ref().is_some_and(|a| &a.id == id),
             Page::Library(LibTab::History) => self.history.is_some(),
             Page::Library(LibTab::Uploads) => self.uploads.is_some(),
-            Page::Library(LibTab::Songs) => self.opened(LIKED_MUSIC).is_some(),
             Page::Library(LibTab::Saved) => self.opened(LIBRARY_SONGS).is_some(),
             Page::Library(LibTab::Downloads) => true,
             Page::Library(_) => self.library.is_some(),
@@ -1498,11 +1486,10 @@ impl App {
         }
     }
 
-    /// The album or playlist the page shows (the Library's liked songs are Liked Music).
+    /// The album or playlist the page shows.
     fn page_list(&self) -> Option<&str> {
         match &self.page {
             Page::Album(id) | Page::Playlist(id) => Some(id),
-            Page::Library(LibTab::Songs) => Some(LIKED_MUSIC),
             Page::Library(LibTab::Saved) => Some(LIBRARY_SONGS),
             _ => None,
         }

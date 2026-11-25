@@ -77,7 +77,6 @@ ui-find-list = البحث في هذه القائمة
 ui-sort = فرز
 ui-sort-by = الفرز حسب: { $name }
 ui-sorting = جارٍ الفرز…
-ui-recently-liked = التي أعجبتك مؤخراً
 ui-recently-played = التي تم تشغيلها مؤخراً
 ui-recently-added = المضافة مؤخراً
 ui-custom-order = ترتيب مخصص

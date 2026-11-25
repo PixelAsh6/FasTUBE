@@ -77,7 +77,6 @@ ui-find-list = इस सूची में खोजें
 ui-sort = क्रमबद्ध करें
 ui-sort-by = क्रमबद्ध करें: { $name }
 ui-sorting = छँटाई...
-ui-recently-liked = हाल ही में पसंद किया गया
 ui-recently-played = हाल ही में खेला गया
 ui-recently-added = हाल ही में जोड़ा गया
 ui-custom-order = कस्टम ऑर्डर
