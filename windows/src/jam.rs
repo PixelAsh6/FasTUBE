@@ -27,6 +27,20 @@ use crate::model::Track;
 /// `ws://127.0.0.1:8787` for `wrangler dev`).
 const SERVER: &str = "wss://fastube.thelightwolfro.workers.dev";
 
+/// A relay the user deployed from inside the app (Settings › the Cloudflare relay)
+/// rides over the built-in one. `None` = the default.
+static RELAY: std::sync::OnceLock<std::sync::RwLock<Option<String>>> = std::sync::OnceLock::new();
+
+/// Point group listening at `url`, or back at the built-in relay with `None`.
+pub fn set_relay(url: Option<String>) {
+    *RELAY.get_or_init(|| std::sync::RwLock::new(None)).write().unwrap() = url.filter(|u| !u.is_empty());
+}
+
+/// The relay in use, if the app deployed one.
+pub fn relay() -> Option<String> {
+    RELAY.get_or_init(|| std::sync::RwLock::new(None)).read().unwrap().clone()
+}
+
 /// Room codes: no 0/O, 1/I/L, so they survive being read out loud.
 pub const ALPHABET: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 pub const CODE_LEN: usize = 6;
@@ -408,7 +422,7 @@ impl Conn {
     }
 
     async fn session(&mut self, out: &mut mpsc::UnboundedReceiver<Out>) -> End {
-        let base = std::env::var("YTM_JAM_SERVER").unwrap_or_else(|_| SERVER.to_owned());
+        let base = relay().or_else(|| std::env::var("YTM_JAM_SERVER").ok()).unwrap_or_else(|| SERVER.to_owned());
         let create = if self.create { "1" } else { "0" };
         let mut params = vec![("create", create.to_owned()), ("name", self.name.clone()), ("v", "1".to_owned())];
         if self.remote {

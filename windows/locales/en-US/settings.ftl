@@ -450,3 +450,24 @@ settings-downloads-and-counting = { $count ->
    *[other] { $shown } downloads and counting
 }
 settings-counting-downloads = Counting downloads…
+relay-title = Cloudflare Relay for Group Listening and Device Control
+relay-desc = Group listening and device control run through a relay server. FasTUBE ships with one, and you can deploy your own on your Cloudflare account, free of charge.
+relay-row-none = Using the built-in relay
+relay-row-none-desc = Deploy your own if you would rather run it on your own account.
+relay-row-set = Your relay
+relay-setup = Set up
+relay-edit = Redeploy
+relay-remove = Remove
+relay-setup-title = Cloudflare Relay for Group Listening and Device Control
+relay-instructions-1 = 1. Create a free account at dash.cloudflare.com.
+relay-instructions-2 = 2. In the dashboard, open My Profile, then API Tokens, then Create Token, pick the "Edit Cloudflare Workers" template, and create it.
+relay-instructions-3 = 3. Paste the token below and deploy. FasTUBE does the rest.
+relay-token-hint = Paste your Cloudflare API token
+relay-deploy = Deploy
+relay-close = Close
+relay-pick-account = Your token sees several accounts; pick the one to deploy into.
+relay-working-listing = Checking your account…
+relay-working-deploying = Deploying the relay…
+relay-done-lead = Your relay is live at
+relay-live-toast = Your relay is live and in use.
+relay-removed = The relay is forgotten here. The worker stays in your Cloudflare dashboard; delete it there if you want it gone.

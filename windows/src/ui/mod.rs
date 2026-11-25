@@ -40,6 +40,7 @@ pub use titlebar::{custom as custom_titlebar, init as init_titlebar, inset as ti
 pub use titlebar::set_view as set_titlebar_view;
 mod transfer;
 mod recognize;
+pub(super) mod relay_setup;
 mod undo;
 mod vector;
 mod wheel;
@@ -724,6 +725,10 @@ pub struct App {
     fs_queue: bool,
     /// The jam invite's QR filling the window (click the QR in the devices menu).
     qr_screen: bool,
+    /// The relay the app deployed on the user's Cloudflare account, if any.
+    relay_url: Option<String>,
+    /// The relay setup screen, while it's open.
+    relay_setup: Option<relay_setup::Setup>,
     /// The page the app was on before full screen; leaving full screen returns to it.
     fs_page: Option<Page>,
     /// Albums' release years, picked up as album pages come in, for the fullscreen
@@ -1177,6 +1182,8 @@ impl App {
             fs_queue: true,
             qr_screen: false,
             fs_page: None,
+            relay_url: get("relay_url").filter(|v| !v.is_empty()),
+            relay_setup: None,
             album_years: HashMap::new(),
             album_year_asked: HashSet::new(),
             queue_w: shell::load_queue_w(get("queue_width")),
@@ -1313,6 +1320,7 @@ impl App {
             app.queue_open = true;
         }
         jam::dev_hooks(&mut app);
+        crate::jam::set_relay(app.relay_url.clone());
         app.audio.set_normalize(app.normalize);
         app.set_gapless();
         app.audio.set_spectrum(app.visualizer);
@@ -2145,6 +2153,16 @@ impl eframe::App for App {
                 jam::qr_screen(self, ui, r);
             });
         }
+        // The Cloudflare relay's setup, at the same layer as the QR screen.
+        if self.relay_setup.is_some() {
+            let r = ctx.content_rect();
+            egui::Area::new(egui::Id::unique("relay-setup")).order(egui::Order::Foreground).fixed_pos(r.min).show(&ctx, |ui| {
+                ui.painter().rect_filled(r, 0.0, theme::panel(0.98));
+                let mut setup = self.relay_setup.take().unwrap_or_default();
+                relay_setup::show(self, &mut setup, ui, r);
+                self.relay_setup = Some(setup);
+            });
+        }
         self.draw_dialog(&ctx);
         palette::show(self, &ctx);
         hotkeys::capture_dialog(self, &ctx);
@@ -2211,6 +2229,7 @@ impl eframe::App for App {
         storage.set_string("autoplay", b(self.autoplay));
         storage.set_string("smart_shuffle", b(self.smart_shuffle));
         storage.set_string("jam_name", self.jam.name.clone());
+        storage.set_string("relay_url", self.relay_url.clone().unwrap_or_default());
         let cache = self.logged_in.then(|| AccountCache {
             name: self.account_name.clone(),
             avatar: self.account_avatar.clone(),

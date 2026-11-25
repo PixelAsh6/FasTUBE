@@ -1755,6 +1755,7 @@ fn settings_tab(app: &mut App, ui: &mut Ui, tab: SettingsTab) {
             settings_window(app, ui);
             settings_downloads(app, ui);
             super::transfer::settings_section(app, ui);
+            settings_relay(app, ui);
             settings_section(ui, tr!("settings-network"), None, None, |ui| network(app, ui));
             // Last, as most apps keep it.
             settings_storage(app, ui);
@@ -2940,6 +2941,31 @@ fn settings_app_icon(app: &mut App, ui: &mut Ui) {
         setting_row(ui, tr!("settings-preview"), Some(tr!("settings-preview-desc")), |ui| {
             icon_preview(ui, crate::appicon::get(app.app_icon));
         });
+    });
+}
+
+/// Settings › General › the Cloudflare relay: the user's own server for group
+/// listening and device control, deployed from inside the app.
+fn settings_relay(app: &mut App, ui: &mut Ui) {
+    settings_section(ui, tr!("relay-title"), None, Some(tr!("relay-desc")), |ui| {
+        match app.relay_url.clone() {
+            Some(url) => setting_row(ui, tr!("relay-row-set"), Some(url.as_str()), |ui| {
+                if pill(ui, tr!("relay-edit"), Some(icon::SETTINGS), false).clicked() {
+                    app.relay_setup = Some(Default::default());
+                }
+                ui.add_space(10.0);
+                if pill(ui, tr!("relay-remove"), Some(icon::TRASH_2), false).clicked() {
+                    app.relay_url = None;
+                    crate::jam::set_relay(None);
+                    app.toast(crate::tr!("relay-removed"));
+                }
+            }),
+            None => setting_row(ui, tr!("relay-row-none"), Some(tr!("relay-row-none-desc")), |ui| {
+                if pill(ui, tr!("relay-setup"), Some(icon::UPLOAD), true).clicked() {
+                    app.relay_setup = Some(Default::default());
+                }
+            }),
+        }
     });
 }
 

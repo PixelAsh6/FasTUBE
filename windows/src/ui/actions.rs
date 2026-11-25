@@ -511,9 +511,11 @@ impl App {
             }
         }
         // A menu or dialog that's open takes this Esc for itself, but the QR overlay
-        // floats above them all, so it goes first.
+        // and the relay setup float above them all, so they go first.
         if esc && self.qr_screen {
             self.qr_screen = false;
+        } else if esc && self.relay_setup.take().is_some() {
+            // The setup screen closed.
         } else if esc && !egui::Popup::is_any_open(ctx) && ctx.memory(|m| m.top_modal_layer()).is_none() {
             if self.row_drag.take().is_some() {
                 // Just the drag.
