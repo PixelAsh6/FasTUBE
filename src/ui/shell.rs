@@ -1464,7 +1464,9 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     // mini player buttons. The volume with its slider and percent takes 174 px plus the time; the icon alone, 36.
     let free = |half: f32| row.right() - 200.0 - speed_w - if song_middle { song_end } else { row.center().x + half + 12.0 };
     let tight = free(141.0) < 174.0 + time_w;
-    let half = if tight { 125.0 } else { 141.0 };
+    // One step further: with the slider never folding away, a very narrow window
+    // tightens the middle twice so the stub slider and the percent still fit.
+    let half = if free(125.0) < 118.0 + time_w { 100.0 } else if tight { 125.0 } else { 141.0 };
     // The slider and its percent are always on display; short of room the slider
     // shrinks (down to a stub) before anything else gives way.
     let room_vol = (free(half) - time_w - 118.0).clamp(44.0, 90.0);
