@@ -1337,15 +1337,16 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
     }
 
     // Middle: the lyrics, one width whether the queue shows or not (so lines wrap the
-    // same); with the queue closed the same panel sits a step into the gap.
+    // same); with the queue closed the same panel sits a step into the gap, never over
+    // the album column: when the gap is tight it gives up width instead.
     let base_col_right = content.left() + (content.width() * 0.33).clamp(330.0, 506.0);
     let lyr_right = content.right() - if queue_on { queue_w + 12.0 } else { 0.0 };
     let lyr_w = (lyr_right - (base_col_right + 24.0)).max(300.0);
     let mid = if queue_on {
         Rect::from_min_max(pos2(col.right() + 24.0, content.top()), pos2(lyr_right, content.bottom()))
     } else {
-        let x0 = (col.right() + (content.right() - col.right()) * 0.18).min(lyr_right - lyr_w);
-        Rect::from_min_max(pos2(x0, content.top()), pos2(x0 + lyr_w, content.bottom()))
+        let x0 = col.right() + 24.0 + (content.right() - col.right() - 24.0) * 0.18;
+        Rect::from_min_max(pos2(x0, content.top()), pos2((x0 + lyr_w).min(lyr_right), content.bottom()))
     };
     let mut mui = ui.new_child(egui::UiBuilder::new().max_rect(mid));
     mui.set_clip_rect(mid.intersect(ui.clip_rect()));
