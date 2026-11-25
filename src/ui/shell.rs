@@ -1464,11 +1464,12 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     // mini player buttons. The volume with its slider and percent takes 174 px plus the time; the icon alone, 36.
     let free = |half: f32| row.right() - 200.0 - speed_w - if song_middle { song_end } else { row.center().x + half + 12.0 };
     let tight = free(141.0) < 174.0 + time_w;
-    // One step further: with the slider never folding away, a very narrow window
-    // tightens the middle twice so the stub slider and the percent still fit.
-    let half = if free(125.0) < 118.0 + time_w { 100.0 } else if tight { 125.0 } else { 141.0 };
+    let half = if tight { 125.0 } else { 141.0 };
     // The slider and its percent are always on display; short of room the slider
     // shrinks (down to a stub) before anything else gives way.
+    // Slider when the room allows it; tighter than that, the percent stays beside
+    // the icon and the slider steps out of the way (wheel over the icon still works).
+    let with_slider = free(half) >= 174.0 + time_w && !chrome.hide_volume;
     let room_vol = (free(half) - time_w - 118.0).clamp(44.0, 90.0);
     // Left: now playing
     if let Some(t) = &track {
@@ -1787,13 +1788,23 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     // A theme that hides the volume hides only the slider in the bar: the icon and its
     // popup stay.
     let vol = app.audio.volume();
-    // The percent sits right of the slider; the slider shrinks before either gives way.
+    // The slider and its percent always show; short of room the slider shrinks to a
+    // stub first, then only the percent stays beside the icon (wheel steps the volume).
     let pct_w = 34.0;
-    let slider = Rect::from_min_size(pos2(rx - 90.0 - pct_w, cy - 10.0), vec2(room_vol, 20.0));
-    volume_slider(app, ui, slider, "vol");
-    let pct = format!("{}%", (vol * 100.0).round());
-    ui.painter().text(pos2(slider.right() + 8.0, cy), Align2::LEFT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
-    let vi = Rect::from_center_size(pos2(slider.left() - 18.0, cy), Vec2::splat(32.0));
+    let slider_w = room_vol.min(90.0);
+    let show_slider = with_slider && slider_w >= 44.0;
+    let (vi, _) = if show_slider {
+        let slider = Rect::from_min_size(pos2(rx - 90.0 - pct_w + (90.0 - slider_w), cy - 10.0), vec2(slider_w, 20.0));
+        volume_slider(app, ui, slider, "vol");
+        let pct = format!("{}%", (vol * 100.0).round());
+        ui.painter().text(pos2(slider.right() + 8.0, cy), Align2::LEFT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
+        (Rect::from_center_size(pos2(slider.left() - 18.0, cy), Vec2::splat(32.0)), slider)
+    } else {
+        let vi = Rect::from_center_size(pos2(rx - 16.0, cy), Vec2::splat(32.0));
+        let pct = format!("{}%", (vol * 100.0).round());
+        ui.painter().text(pos2(vi.left() - 6.0, cy), Align2::RIGHT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
+        (vi, Rect::NOTHING)
+    };
     let vglyph = if vol == 0.0 { icon::VOLUME_X } else if vol < 0.5 { icon::VOLUME_1 } else { icon::VOLUME_2 };
     let mresp = named(ui.interact(vi, ui.scope_id().with("mute"), Sense::click()), crate::tr!("ui-mute")).on_hover_cursor(egui::CursorIcon::PointingHand);
     icon_at(ui, vi.center(), vglyph, 18.0, if mresp.hovered() { theme::text() } else { theme::text_dim() });
