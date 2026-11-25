@@ -3,7 +3,7 @@
 jam-start = セッションを開始
 jam-end = セッションを終了
 jam-leave = セッションから退出
-jam-intro = セッションを始めると、友達と同時に曲を聴けます。各自の ytm-rs で聴き、誰でも曲を追加できます。
+jam-intro = セッションを始めると、友達と同時に曲を聴けます。各自の FasTUBE で聴き、誰でも曲を追加できます。
 jam-guest = ゲスト
 jam-name = 表示名
 jam-name-desc = ほかの参加者に表示される名前です。

@@ -3,7 +3,7 @@
 jam-start = Hörsession starten
 jam-end = Hörsession beenden
 jam-leave = Hörsession verlassen
-jam-intro = Starte eine Hörsession, damit Freunde zeitgleich mithören. Alle nutzen ihr eigenes ytm-rs und können Titel hinzufügen.
+jam-intro = Starte eine Hörsession, damit Freunde zeitgleich mithören. Alle nutzen ihr eigenes FasTUBE und können Titel hinzufügen.
 jam-guest = Gast
 jam-name = Dein Name
 jam-name-desc = Dieser Name ist für andere sichtbar.

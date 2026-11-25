@@ -3,7 +3,7 @@
 jam-start = 용지 걸림 시작
 jam-end = 용지 걸림 종료
 jam-leave = 잼을 남겨주세요
-jam-intro = 즉흥연주를 시작하면 친구들이 당신이 연주하는 음악을 동시에 듣게 됩니다. 누구나 자신의 ytm-rs를 듣고 노래를 추가할 수 있습니다.
+jam-intro = 즉흥연주를 시작하면 친구들이 당신이 연주하는 음악을 동시에 듣게 됩니다. 누구나 자신의 FasTUBE를 듣고 노래를 추가할 수 있습니다.
 jam-guest = 손님
 jam-name = 당신의 이름
 jam-name-desc = Jam의 다른 사람들이 보는 것.

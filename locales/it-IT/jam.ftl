@@ -3,7 +3,7 @@
 jam-start = Avvia una sessione
 jam-end = Termina la sessione
 jam-leave = Lascia la sessione
-jam-intro = Avvia una sessione per ascoltare musica con gli amici in sincronia. Ognuno usa il proprio ytm-rs e può aggiungere brani.
+jam-intro = Avvia una sessione per ascoltare musica con gli amici in sincronia. Ognuno usa il proprio FasTUBE e può aggiungere brani.
 jam-guest = Ospite
 jam-name = Il tuo nome
 jam-name-desc = Il nome che vedono gli altri partecipanti.

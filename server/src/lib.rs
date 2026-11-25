@@ -144,7 +144,7 @@ impl DurableObject for Room {
         ws.serialize_attachment(&me)?;
 
         let mut list = member_list(&members);
-        list.push(json!({ "id": me.id, "name": me.name, "remote": me.remote }));
+        list.push(member_value(&me));
         let stored = |s: Option<String>| s.and_then(|s| serde_json::from_str::<Value>(&s).ok());
         send(&ws, &json!({
             "t": "welcome", "you": me.id, "host": meta.host, "control": meta.control, "queue": !meta.no_queue,
@@ -252,7 +252,7 @@ impl DurableObject for Room {
                 if !is_host && to != me.id {
                     return error(&ws, "denied", "only the host can hand the room over");
                 }
-                if to == meta.host || !self.members(None).iter().any(|(id, _)| id == to) {
+                if to == meta.host || !self.members(None).iter().any(|(_, m)| m.id == to) {
                     return error(&ws, "bad", "no such member to hand over to");
                 }
                 meta.host = to.to_owned();
@@ -412,8 +412,17 @@ fn error(ws: &WebSocket, code: &str, msg: &str) -> Result<()> {
     Ok(())
 }
 
+fn member_value(m: &Member) -> Value {
+    // `remote` only shows up when it's set, so the wire stays as it was otherwise.
+    let mut v = json!({ "id": m.id, "name": m.name });
+    if m.remote {
+        v["remote"] = Value::Bool(true);
+    }
+    v
+}
+
 fn member_list(members: &[(WebSocket, Member)]) -> Vec<Value> {
-    members.iter().map(|(_, m)| json!({ "id": m.id, "name": m.name, "remote": m.remote })).collect()
+    members.iter().map(|(_, m)| member_value(m)).collect()
 }
 
 fn random_id() -> String {

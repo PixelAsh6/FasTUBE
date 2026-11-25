@@ -3,7 +3,7 @@
 jam-start = Jam başlat
 jam-end = Sıkışmayı sonlandırın
 jam-leave = Sıkışmayı bırak
-jam-intro = Bir müzik başlatın ve arkadaşlarınız aynı anda ne çaldığınızı duysun. Herkes kendi ytm-rs'sinde dinler ve herkes şarkı ekleyebilir.
+jam-intro = Bir müzik başlatın ve arkadaşlarınız aynı anda ne çaldığınızı duysun. Herkes kendi FasTUBE'sinde dinler ve herkes şarkı ekleyebilir.
 jam-guest = Misafir
 jam-name = Adınız
 jam-name-desc = Sıkışmadaki diğerlerinin gördükleri.

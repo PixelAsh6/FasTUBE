@@ -3,7 +3,7 @@
 jam-start = 開始即興表演
 jam-end = 結束阻塞
 jam-leave = 離開果醬
-jam-intro = 開始即興演奏，朋友們會同時聽到您演奏的內容。每個人都在自己的ytm-rs上收聽，任何人都可以添加歌曲。
+jam-intro = 開始即興演奏，朋友們會同時聽到您演奏的內容。每個人都在自己的FasTUBE上收聽，任何人都可以添加歌曲。
 jam-guest = 客人
 jam-name = 你的名字
 jam-name-desc = 果醬中的其他人看到了什麼。

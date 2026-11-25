@@ -3,7 +3,7 @@
 jam-start = Mulai jam
 jam-end = Akhiri jam
 jam-leave = Keluar dari jam
-jam-intro = Mulai sesi jam, dan teman-temanmu bakal dengar lagu yang kamu putar di saat yang sama. Semua orang dengerin lewat ytm-rs masing-masing, dan siapa pun bisa menambah lagu.
+jam-intro = Mulai sesi jam, dan teman-temanmu bakal dengar lagu yang kamu putar di saat yang sama. Semua orang dengerin lewat FasTUBE masing-masing, dan siapa pun bisa menambah lagu.
 jam-guest = Tamu
 jam-name = Namamu
 jam-name-desc = Nama yang dilihat orang lain di jam.

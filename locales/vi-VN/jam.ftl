@@ -3,7 +3,7 @@
 jam-start = Bắt đầu ùn tắc
 jam-end = Chấm dứt tình trạng kẹt xe
 jam-leave = Bỏ mứt đi
-jam-intro = Bắt đầu phát nhạc và bạn bè sẽ nghe thấy nội dung bạn chơi cùng lúc. Mọi người đều nghe trên ytm-rs của riêng mình và bất kỳ ai cũng có thể thêm bài hát.
+jam-intro = Bắt đầu phát nhạc và bạn bè sẽ nghe thấy nội dung bạn chơi cùng lúc. Mọi người đều nghe trên FasTUBE của riêng mình và bất kỳ ai cũng có thể thêm bài hát.
 jam-guest = Khách
 jam-name = Tên của bạn
 jam-name-desc = Những gì người khác trong mứt nhìn thấy.
