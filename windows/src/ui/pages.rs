@@ -2945,26 +2945,38 @@ fn settings_app_icon(app: &mut App, ui: &mut Ui) {
 }
 
 /// Settings › General › the Cloudflare relay: the user's own server for group
-/// listening and device control, deployed from inside the app.
+/// listening and device control, deployed from inside the app. Unset shows the
+/// Set up pill; the setup itself expands this same card; set shows the address with
+/// Redeploy and Remove.
 fn settings_relay(app: &mut App, ui: &mut Ui) {
     settings_section(ui, tr!("relay-title"), None, Some(tr!("relay-desc")), |ui| {
-        match app.relay_url.clone() {
-            Some(url) => setting_row(ui, tr!("relay-row-set"), Some(url.as_str()), |ui| {
-                if pill(ui, tr!("relay-edit"), Some(icon::SETTINGS), false).clicked() {
-                    app.relay_setup = Some(Default::default());
-                }
-                ui.add_space(10.0);
-                if pill(ui, tr!("relay-remove"), Some(icon::TRASH_2), false).clicked() {
-                    app.relay_url = None;
-                    crate::jam::set_relay(None);
-                    app.toast(crate::tr!("relay-removed"));
-                }
-            }),
-            None => setting_row(ui, tr!("relay-row-none"), Some(tr!("relay-row-none-desc")), |ui| {
-                if pill(ui, tr!("relay-setup"), Some(icon::UPLOAD), true).clicked() {
-                    app.relay_setup = Some(Default::default());
-                }
-            }),
+        if app.relay_setup.is_some() {
+            // The expanded card, passed out first: it edits the app's relay fields.
+            let mut setup = app.relay_setup.take().unwrap();
+            super::relay_setup::card(app, &mut setup, ui);
+            // Live collapses the card: the row above shows the address from here on.
+            if !matches!(setup.step, super::relay_setup::Step::Done) {
+                app.relay_setup = Some(setup);
+            }
+        } else {
+            match app.relay_url.clone() {
+                Some(url) => setting_row(ui, tr!("relay-row-set"), Some(url.as_str()), |ui| {
+                    if pill(ui, tr!("relay-edit"), Some(icon::SETTINGS), false).clicked() {
+                        app.relay_setup = Some(Default::default());
+                    }
+                    ui.add_space(10.0);
+                    if pill(ui, tr!("relay-remove"), Some(icon::TRASH_2), false).clicked() {
+                        app.relay_url = None;
+                        crate::jam::set_relay(None);
+                        app.toast(crate::tr!("relay-removed"));
+                    }
+                }),
+                None => setting_row(ui, tr!("relay-row-none"), Some(tr!("relay-row-none-desc")), |ui| {
+                    if pill(ui, tr!("relay-setup"), Some(icon::UPLOAD), true).clicked() {
+                        app.relay_setup = Some(Default::default());
+                    }
+                }),
+            }
         }
     });
 }

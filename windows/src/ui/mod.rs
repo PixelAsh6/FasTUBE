@@ -2153,16 +2153,6 @@ impl eframe::App for App {
                 jam::qr_screen(self, ui, r);
             });
         }
-        // The Cloudflare relay's setup, at the same layer as the QR screen.
-        if self.relay_setup.is_some() {
-            let r = ctx.content_rect();
-            egui::Area::new(egui::Id::unique("relay-setup")).order(egui::Order::Foreground).fixed_pos(r.min).show(&ctx, |ui| {
-                ui.painter().rect_filled(r, 0.0, theme::panel(0.98));
-                let mut setup = self.relay_setup.take().unwrap_or_default();
-                relay_setup::show(self, &mut setup, ui, r);
-                self.relay_setup = Some(setup);
-            });
-        }
         self.draw_dialog(&ctx);
         palette::show(self, &ctx);
         hotkeys::capture_dialog(self, &ctx);
