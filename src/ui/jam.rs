@@ -831,7 +831,17 @@ fn room(app: &mut App, ui: &mut Ui) {
 /// people and the host's switches while in one.
 pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     let inner = (width - 32.0).max(160.0);
-    ui.label(egui::RichText::new(crate::tr!("nav-listen-together")).font(theme::bold(14.5)).color(theme::text_dim()));
+    // The heading, with the member count as a chip near the right border while a room
+    // is on; the pills row below keeps just the actions.
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(crate::tr!("nav-listen-together")).font(theme::bold(14.5)).color(theme::text_dim()));
+        if app.jam.active() {
+            ui.add_space(ui.available_width() - 42.0);
+            let (r, _) = ui.allocate_exact_size(vec2(34.0, 22.0), Sense::hover());
+            icon_at(ui, pos2(r.left() + 2.0, r.center().y), icon::USERS, 15.0, theme::text_dim());
+            ui.painter().text(pos2(r.left() + 16.0, r.center().y), Align2::LEFT_CENTER, app.jam.member_count().to_string(), theme::semibold(13.5), theme::text_dim());
+        }
+    });
     ui.add_space(4.0);
     if !app.jam.active() {
         ui.add_space(8.0);
@@ -910,12 +920,6 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
             // Connecting: just the spinner, so the row can't overflow; a row that
             // overflows drags the whole section's left edge with it.
             super::widgets::loader(ui);
-        } else {
-            // The count as a compact chip, an icon and the number: small enough that
-            // the row fits even in the player bar's narrow menu.
-            let (r, _) = ui.allocate_exact_size(vec2(34.0, 22.0), Sense::hover());
-            icon_at(ui, pos2(r.left() + 2.0, r.center().y), icon::USERS, 15.0, theme::text_dim());
-            ui.painter().text(pos2(r.left() + 16.0, r.center().y), Align2::LEFT_CENTER, app.jam.member_count().to_string(), theme::semibold(13.5), theme::text_dim());
         }
     });
     // The invite as a QR, clicked to fill the window: one square on the menu's own
