@@ -905,22 +905,30 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
     let code = app.jam.code().map(str::to_owned);
     let host = app.jam.is_host();
     ui.add_space(8.0);
-    ui.allocate_ui_with_layout(vec2(ui.available_width(), 30.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        if pill(ui, if host { crate::tr!("jam-end-button") } else { crate::tr!("jam-leave-button") }, Some(icon::LOG_OUT), false).clicked() {
-            leave(app);
-        }
-        if let Some(code) = &code
-            && pill(ui, crate::tr!("ui-copy-link"), Some(icon::LINK), false).clicked()
-        {
-            app.share_pending = Some(crate::jam::share_link(code));
-            app.toast(crate::tr!("status-link-copied"));
-        }
-        ui.add_space(6.0);
-        if !app.jam.welcomed {
-            // Connecting: just the spinner, so the row can't overflow; a row that
-            // overflows drags the whole section's left edge with it.
-            super::widgets::loader(ui);
-        }
+    // Copy link pinned at the row's left, End group at its right, the buttons' sizes
+    // unchanged: one row, two halves, each half pinning its pill.
+    ui.allocate_ui_with_layout(vec2(ui.available_width(), 38.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+        let full = ui.available_rect_before_wrap();
+        let mid = (full.left() + full.right()) / 2.0;
+        ui.scope_builder(egui::UiBuilder::new().max_rect(Rect::from_min_max(full.left(), mid)).layout(egui::Layout::left_to_right(egui::Align::Center)), |ui| {
+            if let Some(code) = &code
+                && pill(ui, crate::tr!("ui-copy-link"), Some(icon::LINK), false).clicked()
+            {
+                app.share_pending = Some(crate::jam::share_link(code));
+                app.toast(crate::tr!("status-link-copied"));
+            }
+            if !app.jam.welcomed {
+                // Connecting: just the spinner beside it, so the row can't overflow; a
+                // row that overflows drags the whole section's left edge with it.
+                ui.add_space(6.0);
+                super::widgets::loader(ui);
+            }
+        });
+        ui.scope_builder(egui::UiBuilder::new().max_rect(Rect::from_min_max(mid, full.right())).layout(egui::Layout::right_to_left(egui::Align::Center)), |ui| {
+            if pill(ui, if host { crate::tr!("jam-end-button") } else { crate::tr!("jam-leave-button") }, Some(icon::LOG_OUT), false).clicked() {
+                leave(app);
+            }
+        });
     });
     // The invite as a QR, clicked to fill the window: one square on the menu's own
     // width, so the plate lines up with the device rows above; the frame's inset
