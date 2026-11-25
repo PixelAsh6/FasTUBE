@@ -1,6 +1,6 @@
-/target
+/windows/target
 
-installer/Output/
+/windows/installer/Output/
 .claude/
 
 server/target/

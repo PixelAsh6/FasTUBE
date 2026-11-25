@@ -1,14 +1,13 @@
 name: Tests
 
-# Runs the tests and clippy on every pull request and on main, on Windows and Linux.
-# (macOS runs the tests in the release job, before a release is published.)
-# Not for changes only to the README and its screenshots, which the code doesn't use.
+# Runs the tests and clippy on every pull request and on the branches below, on Windows
+# and Linux. Not for changes only to the README, which the code doesn't use.
 on:
   pull_request:
-    paths-ignore: [README.md, docs/readme/**]
+    paths-ignore: [README.md, docs/**, site/**]
   push:
-    branches: [main]
-    paths-ignore: [README.md, docs/readme/**]
+    branches: [main, fastube]
+    paths-ignore: [README.md, docs/**, site/**]
   workflow_dispatch:
 
 permissions:
@@ -24,9 +23,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The same runners the release job builds on.
         os: [windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: windows
     steps:
       - uses: actions/checkout@v5
 
@@ -35,6 +37,8 @@ jobs:
           components: clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: windows
 
       - name: Install libraries
         if: runner.os == 'Linux'
