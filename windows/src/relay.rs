@@ -47,8 +47,10 @@ fn err_of(body: &str) -> Error {
 /// edit permission - the token template has both.
 pub async fn list_accounts(token: &str) -> Result<Vec<Account>, Error> {
     let client = reqwest::Client::new();
-    let r = client.get(format!("{}/accounts", api())).bearer_auth(token).send().await.map_err(|e| e.to_string())?;
+    let r = client.get(format!("{}/accounts", api())).bearer_auth(token).send().await.map_err(|e| format!("the call to Cloudflare failed: {e}"))?;
+    let status = r.status();
     let body = r.text().await.map_err(|e| e.to_string())?;
+    log::info!("relay: listing accounts answered {} {}", status, &body[..body.len().min(200)]);
     let v: serde_json::Value = serde_json::from_str(&body).map_err(|_| err_of(&body))?;
     if !v["success"].as_bool().unwrap_or(false) {
         return Err(err_of(&body));

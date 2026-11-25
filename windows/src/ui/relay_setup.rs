@@ -80,7 +80,13 @@ impl Setup {
                 self.step = Step::Failed(e);
                 None
             }
-            Err(_) => None,
+            // The task died without answering (a panic): say so, never hang.
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.step = Step::Failed("the deploy task died on the spot - if it repeats, the token or the network refused the call".to_owned());
+                log::warn!("relay: the deploy task ended without an answer");
+                None
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
         }
     }
 }
@@ -130,7 +136,7 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
     dim(ui, crate::tr!("relay-instructions-3"));
     ui.add_space(10.0);
 
-    let resp = super::text_field(ui, crate::tr!("relay-token-label"), &mut setup.token, true, crate::tr!("relay-token-hint"));
+    let resp = super::text_field(ui, crate::tr!("relay-token-label"), &mut setup.token, false, crate::tr!("relay-token-hint"));
     ui.horizontal(|ui| {
         ui.hyperlink_to(ui_text(crate::tr!("relay-token-link"), theme::regular(12.5), link_color()), "https://dash.cloudflare.com/profile/api-tokens");
     });
