@@ -722,9 +722,6 @@ pub struct App {
     lyrics_open: bool,
     /// Up next beside the fullscreen lyrics (Q puts it away).
     fs_queue: bool,
-    /// The device group's room code: FasTUBE joins it at startup, so every device
-    /// with the same code shares one queue and steers one playback.
-    group_code: Option<String>,
     /// The jam invite's QR filling the window (click the QR in the devices menu).
     qr_screen: bool,
     /// The page the app was on before full screen; leaving full screen returns to it.
@@ -1180,7 +1177,6 @@ impl App {
             fs_queue: true,
             qr_screen: false,
             fs_page: None,
-            group_code: get("group_code").filter(|v| !v.is_empty()),
             album_years: HashMap::new(),
             album_year_asked: HashSet::new(),
             queue_w: shell::load_queue_w(get("queue_width")),
@@ -1317,7 +1313,6 @@ impl App {
             app.queue_open = true;
         }
         jam::dev_hooks(&mut app);
-        jam::auto_join(&mut app);
         app.audio.set_normalize(app.normalize);
         app.set_gapless();
         app.audio.set_spectrum(app.visualizer);
@@ -2216,7 +2211,6 @@ impl eframe::App for App {
         storage.set_string("autoplay", b(self.autoplay));
         storage.set_string("smart_shuffle", b(self.smart_shuffle));
         storage.set_string("jam_name", self.jam.name.clone());
-        storage.set_string("group_code", self.group_code.clone().unwrap_or_default());
         let cache = self.logged_in.then(|| AccountCache {
             name: self.account_name.clone(),
             avatar: self.account_avatar.clone(),

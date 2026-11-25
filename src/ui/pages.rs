@@ -2946,35 +2946,8 @@ fn settings_app_icon(app: &mut App, ui: &mut Ui) {
 /// Settings › Connections, above Discord's sections (`presence::settings`).
 fn settings_connections(app: &mut App, ui: &mut Ui) {
     let mut remote_enabled = app.remote_enabled;
-    // The long text goes in the note slot under the heading: a `value` paints on the
-    // heading's line, right-aligned, and a sentence that long runs through the title.
-    settings_section(ui, tr!("nav-listen-together"), None, Some(tr!("settings-group-code-desc")), |ui| {
-        setting_row(ui, tr!("settings-group-code"), None, |ui| {
-            let mut value = app.group_code.clone().unwrap_or_default();
-            let (rect, _) = ui.allocate_exact_size(vec2(200.0, 36.0), Sense::hover());
-            ui.painter().rect_filled(rect, 10.0, theme::glass(0.08));
-            let inner = rect.shrink2(vec2(12.0, 4.0));
-            let edit = ui.put(
-                inner,
-                egui::TextEdit::singleline(&mut value)
-                    .hint_text(egui::RichText::new("ABC234").color(theme::text_faint()))
-                    .font(theme::semibold(16.0))
-                    .char_limit(8)
-                    .frame(egui::Frame::NONE)
-                    .align(egui::Align2::LEFT_CENTER)
-                    .desired_width(inner.width()),
-            );
-            if edit.changed() || edit.lost_focus() {
-                let v = value.trim().to_owned();
-                let next = (!v.is_empty()).then_some(v);
-                if next != app.group_code {
-                    app.group_code = next;
-                    // Joining (or leaving) the group happens on the spot.
-                    crate::ui::jam::leave(app);
-                }
-            }
-        });
-    });
+    // Groups exist only when someone starts or joins one: the bar's device menu is
+    // where that happens, so there is no device-group code to keep here.
     settings_section(ui, tr!("settings-connections"), None, None, |ui| {
         // The Spotify-to-YouTube-Music playlist converter, on its own page.
         setting_row(ui, tr!("transfer-title"), Some(tr!("settings-transfer-desc")), |ui| {

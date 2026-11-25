@@ -166,18 +166,6 @@ pub fn leave(app: &mut App) {
     app.queue.drop_explicit();
 }
 
-/// Starts up inside the device group (a saved code), if there is one. The first
-/// device in hosts it; everyone else follows, which is the Connect-like part.
-pub fn auto_join(app: &mut App) {
-    if app.jam.active() {
-        return;
-    }
-    let Some(code) = app.group_code.as_deref().and_then(crate::jam::normalize_code) else {
-        return;
-    };
-    join(app, &code);
-}
-
 /// Dev hooks: YTM_JAM_HOST=<code> starts a room with that code, YTM_JAM_JOIN=<code> joins one.
 pub fn dev_hooks(app: &mut App) {
     if let Some(code) = super::dev_var("YTM_JAM_HOST").and_then(crate::jam::normalize_code) {
