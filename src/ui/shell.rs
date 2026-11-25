@@ -1487,9 +1487,6 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
         let song_area = Rect::from_min_max(art.left_top(), pos2(x + w + song_tail, art.bottom()));
         let song_menu = ui.interact(song_area, ui.scope_id().with("song-menu"), Sense::click());
         // Between the art, the title and the artists, a click is on the bar's empty space.
-        if song_menu.clicked() {
-            app.actions.push(Action::OpenNowPlaying(!app.np_open));
-        }
         let mut menu_on = vec![song_menu];
         if let Some(secs) = look.chrome.disc_secs {
             // A record peeking out from behind the thumbnail, spinning while it plays.

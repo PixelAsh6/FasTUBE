@@ -504,8 +504,12 @@ impl App {
         if full && self.current().is_some() {
             self.toggle_fullscreen(ctx);
         }
-        if fsq && self.fullscreen {
-            self.fs_queue = !self.fs_queue;
+        if fsq {
+            if self.fullscreen {
+                self.fs_queue = !self.fs_queue;
+            } else {
+                self.toggle_queue();
+            }
         }
         // A menu or dialog that's open takes this Esc for itself.
         if esc && !egui::Popup::is_any_open(ctx) && ctx.memory(|m| m.top_modal_layer()).is_none() {
