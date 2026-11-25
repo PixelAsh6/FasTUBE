@@ -2977,6 +2977,13 @@ fn settings_connections(app: &mut App, ui: &mut Ui) {
         });
     });
     settings_section(ui, tr!("settings-connections"), None, None, |ui| {
+        // The Spotify-to-YouTube-Music playlist converter, on its own page.
+        setting_row(ui, tr!("transfer-title"), Some(tr!("settings-transfer-desc")), |ui| {
+            if pill(ui, tr!("settings-open-transfer"), Some(icon::UPLOAD), true).clicked() {
+                app.go(Page::Transfer);
+            }
+        });
+        divider(ui);
         setting_row(ui, tr!("settings-stream-deck"), Some(tr!("settings-stream-deck-desc")), |ui| {
             toggle(ui, &mut remote_enabled, tr!("settings-stream-deck"));
         });
