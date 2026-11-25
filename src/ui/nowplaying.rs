@@ -1212,7 +1212,7 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
     let col = col.shrink2(egui::vec2(24.0, 12.0));
     let vol_w = 26.0;
     let art_room_h = (col.height() - 250.0).max(160.0);
-    let art_side = (col.width() - vol_w - 24.0).min(art_room_h).min(380.0).max(160.0);
+    let art_side = (col.width() - vol_w - 24.0).clamp(160.0, art_room_h.min(380.0));
     let col_cx = col.left() + vol_w + 14.0 + art_side / 2.0;
     let art_top = col.top() + 14.0;
     let art = Rect::from_min_size(pos2(col_cx - art_side / 2.0, art_top), Vec2::splat(art_side));
