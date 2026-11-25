@@ -1465,13 +1465,9 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let free = |half: f32| row.right() - 200.0 - speed_w - if song_middle { song_end } else { row.center().x + half + 12.0 };
     let tight = free(141.0) < 174.0 + time_w;
     let half = if tight { 125.0 } else { 141.0 };
-    // Full slider with its percent; short of room, the icon keeps the percent beside it;
-    // truly narrow, the bare icon.
-    let full_vol = free(half) >= 174.0 + time_w && !chrome.volume_on_hover && !chrome.hide_volume;
-    let compact_vol = !full_vol;
-    let show_compact_pct = compact_vol && free(half) >= 82.0 + time_w;
-    let show_time = free(half) >= if compact_vol { 82.0 } else { 174.0 } + time_w && !time_under && chrome.time_at != crate::preset::TimeAt::AboveProgress;
-
+    // The slider and its percent are always on display; short of room the slider
+    // shrinks (down to a stub) before anything else gives way.
+    let room_vol = (free(half) - time_w - 118.0).clamp(44.0, 90.0);
     // Left: now playing
     if let Some(t) = &track {
         let art = Rect::from_center_size(pos2(art_x, cy), Vec2::splat(art_side));
@@ -1789,45 +1785,19 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     // A theme that hides the volume hides only the slider in the bar: the icon and its
     // popup stay.
     let vol = app.audio.volume();
-    let vi = if !full_vol {
-        let vi = Rect::from_center_size(pos2(rx - 16.0, cy), Vec2::splat(32.0));
-        // The percent stays put even on the bare icon.
-        if show_compact_pct {
-            let pct = format!("{}%", (vol * 100.0).round());
-            ui.painter().text(pos2(vi.left() - 6.0, cy), Align2::RIGHT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
-        }
-        vi
-    } else {
-        let pct_w = 34.0;
-        let slider = Rect::from_min_size(pos2(rx - 96.0 - pct_w, cy - 10.0), vec2(90.0, 20.0));
-        volume_slider(app, ui, slider, "vol", false);
-        let pct = format!("{}%", (vol * 100.0).round());
-        ui.painter().text(pos2(slider.right() + 8.0, cy), Align2::LEFT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
-        Rect::from_center_size(pos2(slider.left() - 18.0, cy), Vec2::splat(32.0))
-    };
+    // The percent sits right of the slider; the slider shrinks before either gives way.
+    let pct_w = 34.0;
+    let slider = Rect::from_min_size(pos2(rx - 90.0 - pct_w, cy - 10.0), vec2(room_vol, 20.0));
+    volume_slider(app, ui, slider, "vol");
+    let pct = format!("{}%", (vol * 100.0).round());
+    ui.painter().text(pos2(slider.right() + 8.0, cy), Align2::LEFT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
+    let vi = Rect::from_center_size(pos2(slider.left() - 18.0, cy), Vec2::splat(32.0));
     let vglyph = if vol == 0.0 { icon::VOLUME_X } else if vol < 0.5 { icon::VOLUME_1 } else { icon::VOLUME_2 };
     let mresp = named(ui.interact(vi, ui.scope_id().with("mute"), Sense::click()), crate::tr!("ui-mute")).on_hover_cursor(egui::CursorIcon::PointingHand);
     icon_at(ui, vi.center(), vglyph, 18.0, if mresp.hovered() { theme::text() } else { theme::text_dim() });
-    if compact_vol {
-        let pop_id = ui.scope_id().with("vol-pop");
-        let pop = Rect::from_center_size(pos2(vi.center().x, full.top() - 30.0), vec2(140.0, 40.0));
-        // Stays open across the gap between icon and popup, and while dragging.
-        let keep = ui.ctx().pointer_hover_pos().is_some_and(|p| pop.union(vi).expand(4.0).contains(p))
-            || ui.input(|i| i.pointer.any_down());
-        let open = mresp.hovered() || (ui.data(|d| d.get_temp::<bool>(pop_id).unwrap_or(false)) && keep);
-        ui.data_mut(|d| d.insert_temp(pop_id, open));
-        let a = theme::anim_bool(ui.ctx(), pop_id.with("a"), open, 0.12);
-        if a > 0.0 {
-            egui::Area::new(pop_id).order(egui::Order::Foreground).fixed_pos(pop.min).interactable(open).show(ui.ctx(), |ui| {
-                ui.set_opacity(a);
-                let (r, _) = ui.allocate_exact_size(pop.size(), Sense::hover());
-                ui.painter().rect_filled(r, 20.0, theme::menu_fill_solid());
-                ui.painter().rect_stroke(r, 20.0, egui::Stroke::new(1.0, theme::glass(0.08)), egui::StrokeKind::Inside);
-                volume_slider(app, ui, Rect::from_center_size(r.center(), vec2(r.width() - 32.0, 20.0)), "s", true);
-            });
-        }
-        // Scrolling over the icon still sets the volume.
-        let scroll = if mresp.hovered() { ui.input(|i| i.smooth_scroll_delta.y) } else { 0.0 };
+    // Scrolling over the icon still sets the volume.
+    if mresp.hovered() {
+        let scroll = ui.input(|i| i.smooth_scroll_delta.y);
         if scroll != 0.0 {
             app.audio.set_volume((vol + scroll / 600.0).clamp(0.0, 1.0));
         }
@@ -1835,8 +1805,8 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     if mresp.clicked() {
         super::mini::toggle_mute(app, ui);
     }
-    if let Some(g) = time_g.filter(|_| show_time) {
-        let gap = if show_compact_pct { 40.0 } else if compact_vol { 4.0 } else { 10.0 };
+    if let Some(g) = time_g.filter(|_| free(half) >= 174.0 + time_w) {
+        let gap = 10.0;
         let right = vi.left() - gap;
         let at = pos2(right - g.size().x, cy - g.size().y / 2.0);
         let hit = Rect::from_x_y_ranges(right - time_w..=right, at.y..=at.y + g.size().y);
@@ -1861,9 +1831,8 @@ pub(super) fn normalization_note(app: &App) -> Option<String> {
     })
 }
 
-/// The volume track: click or drag to set, scroll over it to nudge. Where there is no
-/// percent beside the slider (`hover_label`), pointed at, the volume shows above the knob.
-pub(super) fn volume_slider(app: &mut App, ui: &mut Ui, slider: Rect, salt: &str, hover_label: bool) {
+/// The volume track: click or drag to set, scroll over it to nudge.
+pub(super) fn volume_slider(app: &mut App, ui: &mut Ui, slider: Rect, salt: &str) {
     let vol = app.audio.volume();
     let vresp = ui.interact(slider, ui.scope_id().with(salt), Sense::click_and_drag()).on_hover_cursor(egui::CursorIcon::PointingHand);
     vresp.widget_info(|| egui::WidgetInfo::slider(true, vol as f64, crate::tr!("ui-volume")));
@@ -1885,14 +1854,6 @@ pub(super) fn volume_slider(app: &mut App, ui: &mut Ui, slider: Rect, salt: &str
         if scroll != 0.0 {
             app.audio.set_volume((vol + scroll / 600.0).clamp(0.0, 1.0));
         }
-    }
-    if hover_label && vh > 0.0 {
-        // Where the volume is now, after this frame's drag or scroll. Above everything,
-        // so the player bar's popup slider doesn't cut it off.
-        let now = app.audio.volume();
-        let at = pos2(track_r.left() + track_r.width() * now, track_r.top() - 12.0);
-        let layer = egui::LayerId::new(egui::Order::Tooltip, ui.scope_id().with((salt, "pct")));
-        ui.ctx().layer_painter(layer).text(at, Align2::CENTER_BOTTOM, format!("{}%", (now * 100.0).round()), theme::semibold(12.0), theme::with_alpha(theme::text(), vh));
     }
 }
 

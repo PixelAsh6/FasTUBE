@@ -1,4 +1,4 @@
-//! Regenerates the app icon from geometry: a dark rounded square with an accent "F",
+//! Regenerates the app icon from geometry: a dark rounded square with an accent "FT",
 //! written as `assets/icon/icon.png` and a multi-size `assets/icon/icon.ico`.
 //! Run: `cargo run --example gen_icon`
 
@@ -6,7 +6,7 @@ use image::{imageops::FilterType, Rgba, RgbaImage};
 
 const SIZE: u32 = 256;
 const BG: [u8; 3] = [23, 23, 30];
-const ACCENT: [u8; 3] = [255, 78, 69];
+const ACCENT: [u8; 3] = [101, 5, 153];
 
 fn main() -> anyhow::Result<()> {
     let img = draw(SIZE);
@@ -49,17 +49,21 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// The rounded square with the accent "F", one opaque pixel at a time.
+/// The rounded square with the accent "FT" monogram, one opaque pixel at a time.
 fn draw(size: u32) -> RgbaImage {
     let mut img = RgbaImage::new(size, size);
     let scale = |v: f32| v * size as f32 / 256.0;
     let bg_r = scale(56.0);
     let bar_r = scale(10.0);
-    // The "F": its spine and its two arms, rounded rectangles.
+    // The "FT" monogram: an F on the left, a T on the right, rounded bars.
     let bars = [
-        (scale(92.0), scale(66.0), scale(124.0), scale(190.0)),
-        (scale(92.0), scale(66.0), scale(176.0), scale(98.0)),
-        (scale(92.0), scale(118.0), scale(156.0), scale(146.0)),
+        // F: spine, top arm, middle arm
+        (scale(78.0), scale(64.0), scale(104.0), scale(192.0)),
+        (scale(78.0), scale(64.0), scale(130.0), scale(88.0)),
+        (scale(78.0), scale(116.0), scale(122.0), scale(112.0)),
+        // T: top bar, spine
+        (scale(140.0), scale(64.0), scale(196.0), scale(88.0)),
+        (scale(154.0), scale(64.0), scale(182.0), scale(192.0)),
     ];
     for y in 0..size {
         for x in 0..size {

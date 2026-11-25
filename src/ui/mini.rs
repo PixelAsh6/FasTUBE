@@ -1450,7 +1450,7 @@ fn card_body(app: &mut App, ui: &mut Ui, cr: Rect, now: f64) {
     if button(ui, pos2(l + 6.0, vy), vglyph, 16.0, if vol == 0.0 { crate::tr!("ui-unmute") } else { crate::tr!("ui-mute") }, false) {
         toggle_mute(app, ui);
     }
-    super::shell::volume_slider(app, ui, Rect::from_min_max(pos2(l + 30.0, vy - 10.0), pos2(rt, vy + 10.0)), "card-vol", true);
+    super::shell::volume_slider(app, ui, Rect::from_min_max(pos2(l + 30.0, vy - 10.0), pos2(rt, vy + 10.0)), "card-vol");
 }
 
 /// Mute, keeping the volume to go back to, or go back to it.

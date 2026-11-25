@@ -1835,7 +1835,7 @@ fn video_fullscreen(app: &mut App, ui: &mut Ui, rect: Rect, track: &crate::model
         super::mini::toggle_mute(app, &left);
     }
     let (slider, _) = left.allocate_exact_size(vec2(90.0, 20.0), Sense::hover());
-    super::shell::volume_slider(app, &mut left, slider, "video-full-vol", true);
+    super::shell::volume_slider(app, &mut left, slider, "video-full-vol");
     left.add_space(14.0);
     if total > 0.0 {
         let g = widgets::time_galley(&left, &super::fmt_running(pos, total, app.time_left), theme::regular(13.5), Color32::WHITE);
