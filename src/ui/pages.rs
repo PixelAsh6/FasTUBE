@@ -1468,7 +1468,7 @@ fn library(app: &mut App, ui: &mut Ui, tab: LibTab, now: f64) {
             ui.add_space(12.0);
             if songs.is_empty() {
                 ui.add_space(20.0);
-                ui.label(RichText::new(crate::tr!("nav-no-downloads")).color(theme::text_dim()));
+                ui.add(egui::Label::new(RichText::new(crate::tr!("nav-no-downloads")).color(theme::text_dim())).wrap_mode(egui::TextWrapMode::Wrap));
                 return;
             }
             list(ui, &rows, &app.liked, songs, true, plain, ListCtx { sel: &mut app.selection, find: &app.find, drag: &mut app.row_drag, movable: false, page: &app.page, own: false }, &mut app.actions);
@@ -2946,7 +2946,9 @@ fn settings_app_icon(app: &mut App, ui: &mut Ui) {
 /// Settings › Connections, above Discord's sections (`presence::settings`).
 fn settings_connections(app: &mut App, ui: &mut Ui) {
     let mut remote_enabled = app.remote_enabled;
-    settings_section(ui, tr!("nav-listen-together"), Some(tr!("settings-group-code-desc")), None, |ui| {
+    // The long text goes in the note slot under the heading: a `value` paints on the
+    // heading's line, right-aligned, and a sentence that long runs through the title.
+    settings_section(ui, tr!("nav-listen-together"), None, Some(tr!("settings-group-code-desc")), |ui| {
         setting_row(ui, tr!("settings-group-code"), None, |ui| {
             let mut value = app.group_code.clone().unwrap_or_default();
             let (rect, _) = ui.allocate_exact_size(vec2(200.0, 36.0), Sense::hover());

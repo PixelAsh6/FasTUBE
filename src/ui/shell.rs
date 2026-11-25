@@ -1458,11 +1458,11 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
     let free = |half: f32| row.right() - 200.0 - speed_w - if song_middle { song_end } else { row.center().x + half + 12.0 };
     let tight = free(141.0) < 174.0 + time_w;
     let half = if tight { 125.0 } else { 141.0 };
+    let with_slider = free(half) >= 174.0 + time_w && !chrome.hide_volume;
     // The slider and its percent are always on display; short of room the slider
     // shrinks (down to a stub) before anything else gives way.
     // Slider when the room allows it; tighter than that, the percent stays beside
     // the icon and the slider steps out of the way (wheel over the icon still works).
-    let with_slider = free(half) >= 174.0 + time_w && !chrome.hide_volume;
     let room_vol = (free(half) - time_w - 118.0).clamp(44.0, 90.0);
     // Left: now playing
     if let Some(t) = &track {
@@ -1791,8 +1791,12 @@ pub fn player_bar(app: &mut App, ui: &mut Ui, now: f64) {
         (Rect::from_center_size(pos2(slider.left() - 18.0, cy), Vec2::splat(32.0)), slider)
     } else {
         let vi = Rect::from_center_size(pos2(rx - 16.0, cy), Vec2::splat(32.0));
-        let pct = format!("{}%", (vol * 100.0).round());
-        ui.painter().text(pos2(vi.left() - 6.0, cy), Align2::RIGHT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
+        // The percent only stays beside the icon while the bar has room for it; in the
+        // tight tier it would run under the transport, so there the icon stands alone.
+        if !tight {
+            let pct = format!("{}%", (vol * 100.0).round());
+            ui.painter().text(pos2(vi.left() - 6.0, cy), Align2::RIGHT_CENTER, pct, theme::semibold(12.0), theme::text_dim());
+        }
         (vi, Rect::NOTHING)
     };
     let vglyph = if vol == 0.0 { icon::VOLUME_X } else if vol < 0.5 { icon::VOLUME_1 } else { icon::VOLUME_2 };

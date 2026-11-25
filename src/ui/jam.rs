@@ -926,8 +926,8 @@ pub fn popup_section(app: &mut App, ui: &mut Ui, width: f32) {
             // The count as a compact chip, an icon and the number: small enough that
             // the row fits even in the player bar's narrow menu.
             let (r, _) = ui.allocate_exact_size(vec2(34.0, 22.0), Sense::hover());
-            icon_at(ui, pos2(r.left() + 7.0, r.center().y), icon::USERS, 15.0, theme::text_dim());
-            ui.painter().text(pos2(r.left() + 18.0, r.center().y), Align2::LEFT_CENTER, app.jam.member_count().to_string(), theme::semibold(13.5), theme::text_dim());
+            icon_at(ui, pos2(r.left() + 2.0, r.center().y), icon::USERS, 15.0, theme::text_dim());
+            ui.painter().text(pos2(r.left() + 16.0, r.center().y), Align2::LEFT_CENTER, app.jam.member_count().to_string(), theme::semibold(13.5), theme::text_dim());
         }
     });
     // The invite as a QR, clicked to fill the window: one square on the menu's own
@@ -1031,6 +1031,9 @@ pub fn qr_screen(app: &mut App, ui: &mut Ui, rect: Rect) {
         return;
     };
     let split = rect.center().x;
+    // The overlay owns its whole rect: a click on its empty space must not fall
+    // through to the page beneath.
+    ui.interact(rect, ui.scope_id().with("qr-screen-sink"), Sense::click());
     let side = (rect.height() - 80.0).min(split - 40.0).max(120.0);
     qr_paint(ui, Rect::from_center_size(pos2(split / 2.0, rect.center().y), Vec2::splat(side)), &crate::jam::share_link(&code));
     let w = 360.0_f32.min(rect.width() - split - 40.0).max(200.0);

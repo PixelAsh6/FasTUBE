@@ -510,12 +510,13 @@ impl App {
                 self.toggle_queue();
             }
         }
-        // A menu or dialog that's open takes this Esc for itself.
-        if esc && !egui::Popup::is_any_open(ctx) && ctx.memory(|m| m.top_modal_layer()).is_none() {
+        // A menu or dialog that's open takes this Esc for itself, but the QR overlay
+        // floats above them all, so it goes first.
+        if esc && self.qr_screen {
+            self.qr_screen = false;
+        } else if esc && !egui::Popup::is_any_open(ctx) && ctx.memory(|m| m.top_modal_layer()).is_none() {
             if self.row_drag.take().is_some() {
                 // Just the drag.
-            } else if self.qr_screen {
-                self.qr_screen = false;
             } else if self.fullscreen {
                 self.set_fullscreen(ctx, false);
             } else {
