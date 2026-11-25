@@ -1205,11 +1205,14 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
     let queue_w = 340.0;
     let queue_on = app.fs_queue && content.width() >= queue_w + 520.0;
 
-    let col = Rect::from_min_max(content.min, pos2(content.left() + (content.width() * 0.33).clamp(330.0, 506.0), content.bottom()));
+    // With the queue closed the album side grows and the lyrics sit a step into the
+    // gap, not against the screen's right edge.
+    let col = Rect::from_min_max(content.min, pos2(content.left() + (content.width() * if queue_on { 0.33 } else { 0.42 }).clamp(if queue_on { 330.0 } else { 400.0 }, if queue_on { 506.0 } else { 640.0 }), content.bottom()));
     let col = col.shrink2(egui::vec2(24.0, 12.0));
     let vol_w = 28.0;
     let art_room_h = (col.height() - 250.0).max(160.0);
-    let art_side = (col.width() - vol_w - 24.0).clamp(170.0, art_room_h.min(418.0));
+    let art_cap = if queue_on { 418.0 } else { 560.0 };
+    let art_side = (col.width() - vol_w - 24.0).clamp(170.0, art_room_h.min(art_cap));
     let col_cx = col.left() + vol_w + 14.0 + art_side / 2.0;
     // The whole block (art, seek, transport, facts) sits in the middle of the height.
     let art_top = ((col.top() + col.bottom()) / 2.0 - (art_side + 194.0) / 2.0).max(col.top() + 14.0);
@@ -1333,9 +1336,9 @@ fn fs_columns(app: &mut App, ui: &mut Ui, content: Rect, track: &crate::model::T
         }
     }
 
-    // Middle: the lyrics, pushed a little further right; with the queue closed they
-    // take the centre-right of the screen instead of hugging the left column.
-    let mid_left = if queue_on { col.right() + 24.0 } else { (col.right() + content.right()) / 2.0 + 60.0 };
+    // Middle: the lyrics. With the queue open they start right of the album column;
+    // with it closed they take the middle of the remaining width, a step right.
+    let mid_left = if queue_on { col.right() + 24.0 } else { col.right() + (content.right() - col.right()) * 0.2 };
     let mid = Rect::from_min_max(pos2(mid_left, content.top()), pos2(if queue_on { content.right() - queue_w - 12.0 } else { content.right() }, content.bottom()));
     let mut mui = ui.new_child(egui::UiBuilder::new().max_rect(mid));
     mui.set_clip_rect(mid.intersect(ui.clip_rect()));
