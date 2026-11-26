@@ -121,9 +121,9 @@ android {
     }
 
     // The phone <-> watch protocol, one file shared with the watch app so the
-    // two cannot drift. See wearos/protocol/.../WearProtocol.kt.
+    // two cannot drift. See wear-os/protocol/.../WearProtocol.kt.
     sourceSets {
-        getByName("main") { java.srcDir("../wearos/protocol") }
+        getByName("main") { java.srcDir("../../wear-os/protocol") }
     }
 
     externalNativeBuild {
@@ -570,7 +570,7 @@ if (providers.gradleProperty("bitchord.bundleWear").orNull != "false" && findPro
         val cap = variant.name.replaceFirstChar { it.uppercase() }
         val bundle = tasks.register<BundleWearApk>("bundleWearApk$cap") {
             dependsOn(":wearos:assemble$cap")
-            apks.from(rootProject.layout.projectDirectory.dir("wearos/build/outputs/apk/$flavor/$type"))
+            apks.from(project(":wearos").layout.buildDirectory.dir("outputs/apk/$flavor/$type"))
         }
         variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleWearApk::outputDir)
     }

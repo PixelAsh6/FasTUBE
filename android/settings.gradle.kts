@@ -35,8 +35,10 @@ val androidSdk: String? = file("local.properties")
 
 if (androidSdk != null && file(androidSdk).isDirectory) {
     include(":app")
-    include(":tv")
     include(":wearos")
+    // The watch module is the wear-os/ folder beside android/ (the repo's layout:
+    // windows/, android/, wear-os/), one build across the two.
+    project(":wearos").projectDir = file("../wear-os")
 } else {
     logger.lifecycle("No Android SDK found — building the desktop targets only.")
 }
