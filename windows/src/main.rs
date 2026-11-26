@@ -357,6 +357,12 @@ fn hwnd(_: &eframe::CreationContext) -> Option<*mut std::ffi::c_void> {
 /// Log to stderr in debug builds; release builds have no console, so log to a file
 /// next to the settings (overwritten each launch).
 fn init_logging() {
+    // Panics land in the log too: a task that dies mid-deploy tells us where.
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        log::error!("panic: {}", info);
+        default_hook(info);
+    }));
     let mut builder = env_logger::Builder::from_env(
         // A test build can be made more talkative: YTM_DEFAULT_LOG=warn,ytm_rs=debug cargo build.
         env_logger::Env::default().default_filter_or(option_env!("YTM_DEFAULT_LOG").unwrap_or("warn,ytm_rs=info")),

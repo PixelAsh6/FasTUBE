@@ -7,6 +7,7 @@ use egui::{pos2, Align2, Color32, RichText, Ui};
 use super::theme;
 use super::widgets::{loader, pill, ui_text};
 use crate::relay;
+use futures_util::FutureExt;
 
 /// Where the setup stands.
 pub enum Step {
@@ -50,17 +51,19 @@ pub(crate) enum Answer {
 impl Setup {
     /// Ask for the accounts the token sees; the first step of every deploy.
     pub fn start(&mut self, backend: &crate::backend::Backend) {
+        log::info!("relay: start begins");
         let (tx, rx) = std::sync::mpsc::channel::<Result<Answer, String>>();
         self.inbox = Some(rx);
         self.step = Step::Listing;
         let token = self.token.trim().to_owned();
         backend.spawn(async move {
-            let _ = tx.send(relay::list_accounts(&token).await.map(Answer::Accounts));
+            let _ = tx.send(catch(async { relay::list_accounts(&token).await.map(Answer::Accounts) }).await);
         });
     }
 
     /// Deploy into the picked account; the last step.
     fn deploy(&mut self, backend: &crate::backend::Backend) {
+        log::info!("relay: deploy begins for picked={} of {}", self.picked, self.accounts.len());
         let Some(account) = self.accounts.get(self.picked.min(self.accounts.len().saturating_sub(1))) else { return };
         let (tx, rx) = std::sync::mpsc::channel::<Result<Answer, String>>();
         self.inbox = Some(rx);
@@ -68,7 +71,7 @@ impl Setup {
         let token = self.token.trim().to_owned();
         let account = account.id.clone();
         backend.spawn(async move {
-            let _ = tx.send(relay::deploy(&token, &account).await.map(Answer::Live));
+            let _ = tx.send(catch(async { relay::deploy(&token, &account).await.map(Answer::Live) }).await);
         });
     }
 
@@ -80,13 +83,28 @@ impl Setup {
                 self.step = Step::Failed(e);
                 None
             }
-            // The task died without answering (a panic): say so, never hang.
+            // The task died without answering (a panic): say so once, never hang,
+            // never spam. The panic hook below puts the panic itself in the log.
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                self.step = Step::Failed("the deploy task died on the spot - if it repeats, the token or the network refused the call".to_owned());
+                self.inbox = None;
+                self.step = Step::Failed("the deploy task died on the spot - the exact panic is in the log".to_owned());
                 log::warn!("relay: the deploy task ended without an answer");
                 None
             }
             Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+}
+
+/// Run a deploy future, catching its panics into an error answer: a task that dies
+/// silently would otherwise leave the setup screen hanging forever.
+async fn catch(fut: impl std::future::Future<Output = Result<Answer, String>>) -> Result<Answer, String> {
+    match std::panic::AssertUnwindSafe(fut).catch_unwind().await {
+        Ok(out) => out,
+        Err(p) => {
+            let msg = p.downcast_ref::<String>().cloned().or_else(|| p.downcast_ref::<&str>().map(|s| (*s).to_owned())).unwrap_or_else(|| "unknown panic".to_owned());
+            log::error!("relay: the deploy task panicked: {msg}");
+            Err(format!("the deploy task panicked: {msg}"))
         }
     }
 }
@@ -99,9 +117,12 @@ fn link_color() -> Color32 {
 /// The expanded card, on the General page: the ListenBrainz anatomy - a row, a mini
 /// label over a rounded field, a blue helper link, and the pills.
 pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
+    let tag = match &setup.step { Step::Idle => "idle", Step::Listing => "listing", Step::Picking => "picking", Step::Deploying => "deploying", Step::Done => "done", Step::Failed(_) => "failed" };
+    log::info!("relay card frame: step={tag} picked={} accounts={} token_len={}", setup.picked, setup.accounts.len(), setup.token.len());
     // An answer that came in settles the state before anything draws.
     match setup.answer() {
         Some(Answer::Accounts(accounts)) => {
+            log::info!("relay: listing answered, {} account(s)", accounts.len());
             let alone = accounts.len() == 1;
             setup.accounts = accounts;
             setup.picked = 0;
@@ -112,6 +133,7 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
             }
         }
         Some(Answer::Live(url)) => {
+            log::info!("relay: deploy answered live: {url}");
             app.relay_url = Some(url.clone());
             crate::jam::set_relay(Some(url.clone()));
             app.toast(crate::tr!("relay-live-toast", url = url.as_str()));
@@ -184,9 +206,11 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
     }
 
     if start {
+        log::info!("relay: start() listing accounts");
         setup.start(&app.backend);
     }
     if deploy {
+        log::info!("relay: deploy() uploading");
         setup.deploy(&app.backend);
     }
     if cancel {

@@ -50,7 +50,7 @@ pub async fn list_accounts(token: &str) -> Result<Vec<Account>, Error> {
     let r = client.get(format!("{}/accounts", api())).bearer_auth(token).send().await.map_err(|e| format!("the call to Cloudflare failed: {e}"))?;
     let status = r.status();
     let body = r.text().await.map_err(|e| e.to_string())?;
-    log::info!("relay: listing accounts answered {} {}", status, &body[..body.len().min(200)]);
+    log::info!("relay: listing accounts answered {} {}", status, body.chars().take(200).collect::<String>());
     let v: serde_json::Value = serde_json::from_str(&body).map_err(|_| err_of(&body))?;
     if !v["success"].as_bool().unwrap_or(false) {
         return Err(err_of(&body));
@@ -199,5 +199,18 @@ mod tests {
         let js = String::from_utf8_lossy(BUNDLE.iter().find(|(n, _)| *n == MAIN_MODULE).unwrap().1);
         assert!(js.contains("relay_bg.wasm"), "the entry module must reference the wasm by its embedded name");
         assert!(BUNDLE.iter().any(|(n, b)| *n == "relay_bg.wasm" && b.starts_with(b"\0asm")), "the wasm part starts with its magic");
+    }
+}
+
+#[cfg(test)]
+mod debug_tests {
+    use super::*;
+
+    /// Debug: exercise the deploy path against the real API with a dead token, so the
+    /// panic (if there is one) shows locally with a backtrace. Not a real test.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn deploy_with_dead_token_errs_or_lives() {
+        let out = deploy("cfut_deadtoken_deadtoken_deadtoken_dead", "730b13098fc4500e5c1d39aadab816ff").await;
+        println!("deploy outcome: {out:?}");
     }
 }
