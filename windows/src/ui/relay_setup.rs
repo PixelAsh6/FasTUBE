@@ -38,7 +38,13 @@ pub struct Setup {
 
 impl Default for Setup {
     fn default() -> Self {
-        Self { token: String::new(), step: Step::Idle, accounts: Vec::new(), picked: 0, inbox: None }
+        Self {
+            token: String::new(),
+            step: Step::Idle,
+            accounts: Vec::new(),
+            picked: 0,
+            inbox: None,
+        }
     }
 }
 
@@ -51,27 +57,51 @@ pub(crate) enum Answer {
 impl Setup {
     /// Ask for the accounts the token sees; the first step of every deploy.
     pub fn start(&mut self, backend: &crate::backend::Backend) {
+        let token = self.token.trim().to_owned();
+        if token.is_empty() {
+            // Nothing to send Cloudflare: say so instead of a request that always
+            // answers with an authentication error.
+            self.step = Step::Failed(crate::tr!("relay-token-hint").to_owned());
+            return;
+        }
         log::info!("relay: start begins");
         let (tx, rx) = std::sync::mpsc::channel::<Result<Answer, String>>();
         self.inbox = Some(rx);
         self.step = Step::Listing;
-        let token = self.token.trim().to_owned();
         backend.spawn(async move {
-            let _ = tx.send(catch(async { relay::list_accounts(&token).await.map(Answer::Accounts) }).await);
+            let _ = tx.send(
+                catch(async { relay::list_accounts(&token).await.map(Answer::Accounts) }).await,
+            );
         });
     }
 
     /// Deploy into the picked account; the last step.
     fn deploy(&mut self, backend: &crate::backend::Backend) {
-        log::info!("relay: deploy begins for picked={} of {}", self.picked, self.accounts.len());
-        let Some(account) = self.accounts.get(self.picked.min(self.accounts.len().saturating_sub(1))) else { return };
+        log::info!(
+            "relay: deploy begins for picked={} of {}",
+            self.picked,
+            self.accounts.len()
+        );
+        let Some(account) = self
+            .accounts
+            .get(self.picked.min(self.accounts.len().saturating_sub(1)))
+        else {
+            // Never a silent no-op: deploy without a listed account is a bug upstream
+            // of this call (the pill only offers it once accounts are in).
+            self.step = Step::Failed(
+                "no account to deploy into - the token's accounts were never listed".to_owned(),
+            );
+            return;
+        };
         let (tx, rx) = std::sync::mpsc::channel::<Result<Answer, String>>();
         self.inbox = Some(rx);
         self.step = Step::Deploying;
         let token = self.token.trim().to_owned();
         let account = account.id.clone();
         backend.spawn(async move {
-            let _ = tx.send(catch(async { relay::deploy(&token, &account).await.map(Answer::Live) }).await);
+            let _ = tx.send(
+                catch(async { relay::deploy(&token, &account).await.map(Answer::Live) }).await,
+            );
         });
     }
 
@@ -87,7 +117,9 @@ impl Setup {
             // never spam. The panic hook below puts the panic itself in the log.
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.inbox = None;
-                self.step = Step::Failed("the deploy task died on the spot - the exact panic is in the log".to_owned());
+                self.step = Step::Failed(
+                    "the deploy task died on the spot - the exact panic is in the log".to_owned(),
+                );
                 log::warn!("relay: the deploy task ended without an answer");
                 None
             }
@@ -98,11 +130,17 @@ impl Setup {
 
 /// Run a deploy future, catching its panics into an error answer: a task that dies
 /// silently would otherwise leave the setup screen hanging forever.
-async fn catch(fut: impl std::future::Future<Output = Result<Answer, String>>) -> Result<Answer, String> {
+async fn catch(
+    fut: impl std::future::Future<Output = Result<Answer, String>>,
+) -> Result<Answer, String> {
     match std::panic::AssertUnwindSafe(fut).catch_unwind().await {
         Ok(out) => out,
         Err(p) => {
-            let msg = p.downcast_ref::<String>().cloned().or_else(|| p.downcast_ref::<&str>().map(|s| (*s).to_owned())).unwrap_or_else(|| "unknown panic".to_owned());
+            let msg = p
+                .downcast_ref::<String>()
+                .cloned()
+                .or_else(|| p.downcast_ref::<&str>().map(|s| (*s).to_owned()))
+                .unwrap_or_else(|| "unknown panic".to_owned());
             log::error!("relay: the deploy task panicked: {msg}");
             Err(format!("the deploy task panicked: {msg}"))
         }
@@ -111,14 +149,16 @@ async fn catch(fut: impl std::future::Future<Output = Result<Answer, String>>) -
 
 /// The blue the app's helper links render in.
 fn link_color() -> Color32 {
-    if theme::light() { Color32::from_rgb(0, 102, 204) } else { Color32::from_rgb(62, 166, 255) }
+    if theme::light() {
+        Color32::from_rgb(0, 102, 204)
+    } else {
+        Color32::from_rgb(62, 166, 255)
+    }
 }
 
 /// The expanded card, on the General page: the ListenBrainz anatomy - a row, a mini
 /// label over a rounded field, a blue helper link, and the pills.
 pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
-    let tag = match &setup.step { Step::Idle => "idle", Step::Listing => "listing", Step::Picking => "picking", Step::Deploying => "deploying", Step::Done => "done", Step::Failed(_) => "failed" };
-    log::info!("relay card frame: step={tag} picked={} accounts={} token_len={}", setup.picked, setup.accounts.len(), setup.token.len());
     // An answer that came in settles the state before anything draws.
     match setup.answer() {
         Some(Answer::Accounts(accounts)) => {
@@ -151,28 +191,53 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
     let mut deploy = false;
     let mut cancel = false;
 
-    ui.label(RichText::new(crate::tr!("relay-deploy-title")).font(theme::semibold(14.5)).color(theme::text()));
+    ui.label(
+        RichText::new(crate::tr!("relay-deploy-title"))
+            .font(theme::semibold(14.5))
+            .color(theme::text()),
+    );
     ui.add_space(16.0);
     dim(ui, crate::tr!("relay-instructions-1"));
     dim(ui, crate::tr!("relay-instructions-2"));
     dim(ui, crate::tr!("relay-instructions-3"));
     ui.add_space(10.0);
 
-    let resp = super::text_field(ui, crate::tr!("relay-token-label"), &mut setup.token, false, crate::tr!("relay-token-hint"));
+    let resp = super::text_field(
+        ui,
+        crate::tr!("relay-token-label"),
+        &mut setup.token,
+        false,
+        crate::tr!("relay-token-hint"),
+    );
     ui.horizontal(|ui| {
-        ui.hyperlink_to(ui_text(crate::tr!("relay-token-link"), theme::regular(12.5), link_color()), "https://dash.cloudflare.com/profile/api-tokens");
+        ui.hyperlink_to(
+            ui_text(
+                crate::tr!("relay-token-link"),
+                theme::regular(12.5),
+                link_color(),
+            ),
+            "https://dash.cloudflare.com/profile/api-tokens",
+        );
     });
     ui.add_space(8.0);
 
     match &setup.step {
         Step::Failed(e) => {
-            ui.label(RichText::new(e).font(theme::regular(13.0)).color(theme::RED));
+            ui.label(
+                RichText::new(e)
+                    .font(theme::regular(13.0))
+                    .color(theme::RED),
+            );
             ui.add_space(8.0);
         }
         Step::Listing | Step::Deploying => {
             loader(ui);
             ui.add_space(6.0);
-            let phrase = if matches!(setup.step, Step::Listing) { crate::tr!("relay-working-listing") } else { crate::tr!("relay-working-deploying") };
+            let phrase = if matches!(setup.step, Step::Listing) {
+                crate::tr!("relay-working-listing")
+            } else {
+                crate::tr!("relay-working-deploying")
+            };
             dim(ui, phrase);
         }
         Step::Picking => {
@@ -180,9 +245,22 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
             dim(ui, crate::tr!("relay-pick-account"));
             let mut new_pick = setup.picked;
             for (i, name) in setup.accounts.iter().map(|a| &a.name).enumerate() {
-                let (r, resp) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 26.0), egui::Sense::click());
-                let mark = if setup.picked == i { theme::icon::CHECK } else { ' ' };
-                ui.painter().text(pos2(r.left() + 12.0, r.center().y), Align2::LEFT_CENTER, format!("{mark} {name}"), theme::regular(13.5), theme::text());
+                let (r, resp) = ui.allocate_exact_size(
+                    egui::vec2(ui.available_width(), 26.0),
+                    egui::Sense::click(),
+                );
+                let mark = if setup.picked == i {
+                    theme::icon::CHECK
+                } else {
+                    ' '
+                };
+                ui.painter().text(
+                    pos2(r.left() + 12.0, r.center().y),
+                    Align2::LEFT_CENTER,
+                    format!("{mark} {name}"),
+                    theme::regular(13.5),
+                    theme::text(),
+                );
                 if resp.clicked() {
                     new_pick = i;
                 }
@@ -194,14 +272,34 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
 
     ui.horizontal(|ui| {
         ui.add_space(4.0);
-        if matches!(setup.step, Step::Idle | Step::Failed(_) | Step::Picking) {
-            deploy |= pill(ui, crate::tr!("relay-deploy"), Some(theme::icon::UPLOAD), true).clicked();
+        // Idle and Failed have no accounts yet: Deploy means list them first.
+        // Only Picking holds accounts, so only there does Deploy mean upload.
+        if matches!(setup.step, Step::Idle | Step::Failed(_)) {
+            start |= pill(
+                ui,
+                crate::tr!("relay-deploy"),
+                Some(theme::icon::UPLOAD),
+                true,
+            )
+            .clicked();
+        } else if matches!(setup.step, Step::Picking) {
+            deploy |= pill(
+                ui,
+                crate::tr!("relay-deploy"),
+                Some(theme::icon::UPLOAD),
+                true,
+            )
+            .clicked();
         }
         ui.add_space(10.0);
         cancel |= pill(ui, crate::tr!("relay-cancel"), None, false).clicked();
     });
     // Enter in the token field deploys too, like the ListenBrainz token's Enter.
-    if resp.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) && !setup.token.trim().is_empty() && matches!(setup.step, Step::Idle | Step::Failed(_)) {
+    if resp.lost_focus()
+        && ui.input(|i| i.key_pressed(egui::Key::Enter))
+        && !setup.token.trim().is_empty()
+        && matches!(setup.step, Step::Idle | Step::Failed(_))
+    {
         start = true;
     }
 
@@ -219,5 +317,9 @@ pub fn card(app: &mut super::App, setup: &mut Setup, ui: &mut Ui) {
 }
 
 fn dim(ui: &mut Ui, text: &str) {
-    ui.label(RichText::new(text).font(theme::regular(13.5)).color(theme::text_dim()));
+    ui.label(
+        RichText::new(text)
+            .font(theme::regular(13.5))
+            .color(theme::text_dim()),
+    );
 }
