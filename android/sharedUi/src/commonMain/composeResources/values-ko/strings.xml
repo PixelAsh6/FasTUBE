@@ -8,7 +8,6 @@
     <string name="audio_pipeline">오디오 파이프라인</string>
     <string name="automix_analysis_status">자동 믹스 · 이번 곡: %1$s · 다음: %2$s</string>
     <string name="automix_not_supported_video">비디오 음악은 자동 믹스를 지원하지 않습니다</string>
-    <string name="automix_stopped_in_party">자동 믹스: 함께 듣기에서 중지됨</string>
     <string name="autoplay">자동 재생</string>
     <string name="autoplay_empty_description">비슷한 음악이 계속 재생됩니다</string>
     <string name="autoplay_off">자동 재생 끔</string>
@@ -37,16 +36,6 @@
     <string name="increase_lyrics_offset">가사 오프셋 늘리기</string>
     <string name="instrumental">반주</string>
     <string name="like">좋아요</string>
-    <string name="listen_together">함께 듣기</string>
-    <string name="listen_together_away">자리 비움 — 자리는 유지됩니다</string>
-    <string name="listen_together_host">호스트</string>
-    <string name="listen_together_in_party">파티 중 · %1$s</string>
-    <string name="listen_together_jam">%1$s의 잼</string>
-    <string name="listen_together_jam_unnamed">함께 듣기</string>
-    <string name="listen_together_manage">관리</string>
-    <string name="listen_together_open">함께 듣기</string>
-    <string name="listen_together_open_count">함께 듣기 · %1$d</string>
-    <string name="listen_together_you">나</string>
     <string name="mixing">믹싱 중</string>
     <string name="lossless">무손실</string>
     <string name="lyrics_already_in_language">이 가사는 이미 %1$s입니다</string>
@@ -107,7 +96,6 @@
     <string name="open_lyrics">가사</string>
     <string name="pause">일시중지</string>
     <string name="play">재생</string>
-    <string name="played_by">%1$s 님이 재생함</string>
     <string name="playing_from">%1$s에서 재생 중</string>
     <string name="playing_radio">%1$s 라디오 재생 중</string>
     <string name="queue">대기열</string>

@@ -817,7 +817,7 @@ internal fun MixViewOverlay(hazeState: HazeState) {
             currentPreview != null -> held = currentPreview
         }
     }
-    // Nothing to show after all: no next track, a party, a video — anything
+    // Nothing to show after all: no next track, a video — anything
     // that plans no transition. Said, rather than a skeleton left up forever.
     val unavailable = stringResource(Res.string.automix_overview_unavailable)
     LaunchedEffect(open, held == null) {

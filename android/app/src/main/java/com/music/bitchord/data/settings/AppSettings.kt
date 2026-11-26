@@ -464,16 +464,13 @@ object AppSettings {
      */
     val showBestPart = MutableStateFlow(true)
 
-    /** Show the output / Listen Together pill under the player's transport. */
-    val showListenTogetherButton = MutableStateFlow(false)
-
     /** Freezes the main player's mesh gradient instead of letting it drift/crossfade. */
     val reduceAnimation = MutableStateFlow(false)
 
     /**
-     * Whether the welcome pages (party name, then YouTube sign-in) have been
-     * through. Absent rather than true for anyone updating from a build that
-     * had no onboarding, so they get it once too — they have no party name yet.
+     * Whether the welcome page (the YouTube sign-in) has been through. Absent
+     * rather than true for anyone updating from a build that had no onboarding,
+     * so they get it once too.
      */
     val onboardingComplete = MutableStateFlow(false)
 
@@ -1109,7 +1106,6 @@ object AppSettings {
         repeatMode.value = prefs.getInt(KEY_REPEAT_MODE, Player.REPEAT_MODE_OFF)
         showNerdStats.value = prefs.getBoolean(KEY_NERD_STATS, false)
         showBestPart.value = prefs.getBoolean(KEY_BEST_PART, true)
-        showListenTogetherButton.value = prefs.getBoolean(KEY_LISTEN_TOGETHER_BUTTON, false)
         reduceAnimation.value = prefs.getBoolean(KEY_REDUCE_ANIMATION, false)
         onboardingComplete.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
         highPerformanceMode.value = prefs.getBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
@@ -1538,11 +1534,6 @@ object AppSettings {
     fun setShowBestPart(value: Boolean) {
         showBestPart.value = value
         prefs.edit().putBoolean(KEY_BEST_PART, value).apply()
-    }
-
-    fun setShowListenTogetherButton(value: Boolean) {
-        showListenTogetherButton.value = value
-        prefs.edit().putBoolean(KEY_LISTEN_TOGETHER_BUTTON, value).apply()
     }
 
     fun setThemeMode(value: ThemeMode) {
@@ -2456,7 +2447,6 @@ object AppSettings {
     private const val KEY_REPEAT_MODE = "repeat_mode"
     private const val KEY_NERD_STATS = "show_nerd_stats"
     private const val KEY_BEST_PART = "show_best_part"
-    private const val KEY_LISTEN_TOGETHER_BUTTON = "show_listen_together_button"
     private const val KEY_CACHE_LIMIT = "audio_cache_limit_bytes"
     private const val KEY_REDUCE_ANIMATION = "reduce_animation"
     private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"

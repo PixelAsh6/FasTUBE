@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.canvas.CanvasArtwork
 import com.music.bitchord.data.canvas.CanvasRepository
-import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsTranslation
 import com.music.bitchord.data.model.Song
@@ -51,7 +50,7 @@ import kotlin.math.roundToInt
 
 /**
  * The phone's answers to [PlayerHost]: AppSettings, the Media3 Canvas decoder,
- * AudioRouting and the music stream's volume, the party, and the lyric
+ * AudioRouting and the music stream's volume, and the lyric
  * translation endpoint — each exactly what the player read directly before it
  * moved into the shared module.
  */
@@ -102,7 +101,6 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         override val disableBlendEffects get() = AppSettings.disableBlendEffects
         override val showNerdStats get() = AppSettings.showNerdStats
         override val showBestPart get() = AppSettings.showBestPart
-        override val showListenTogetherButton get() = AppSettings.showListenTogetherButton
         override val smartAnalysis get() = AppSettings.smartAnalysis
         override val automixDetail get() = AppSettings.automixDetail
         override val smartFadeEnabled get() = AppSettings.smartFadeEnabled
@@ -205,12 +203,6 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         )
     }
 
-    override val party: StateFlow<PartyUi> by lazy {
-        ListenTogether.state
-            .map { it.toPartyUi() }
-            .stateIn(scope, SharingStarted.Eagerly, ListenTogether.state.value.toPartyUi())
-    }
-
     override suspend fun translateLyrics(
         trackId: String,
         lines: List<LyricLine>,
@@ -299,14 +291,6 @@ private fun AudioOutputStatus.Snapshot.toOutputFormat(bitPerfect: BitPerfectOutp
         dacLimited = dacLimited,
     )
 }
-
-private fun ListenTogether.State.toPartyUi() = PartyUi(
-    inParty = inParty,
-    controlsLocked = controlsLocked,
-    members = members,
-    you = you,
-    code = code,
-)
 
 /**
  * The volume bar's level: the receiver's while the music is on one, the DAC's

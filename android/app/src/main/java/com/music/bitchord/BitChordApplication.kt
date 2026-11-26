@@ -34,7 +34,6 @@ import com.music.bitchord.playback.BoundedContextPersistence
 import com.music.bitchord.playback.OriginalVersion
 import com.music.bitchord.data.innertube.Innertube
 import com.music.bitchord.data.innertube.AndroidStreamHooks
-import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.scrobbling.LastFM
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.SearchHistory
@@ -67,7 +66,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
     override fun onCreate() {
         super.onCreate()
         // The player is drawn by the shared UI module; this is what it reads
-        // underneath — settings, the Canvas decoder, outputs, the party.
+        // underneath — settings, the Canvas decoder, outputs.
         AndroidStreamHooks.installEarly()
         PlayerPlatform.install(AndroidPlayerHost(this))
         com.music.bitchord.ui.AppUi.install(com.music.bitchord.ui.AndroidAppUiHost)
@@ -159,15 +158,9 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
         com.music.bitchord.playback.audio.LosslessOutput.init(this)
-        // Restores a party this device is still a member of, so a process death
-        // mid-session is something the rest of the party never sees. The socket
-        // and the clock offset are not restored — both are re-established on
-        // the next connect, which is the only way to be sure they are current.
-        ListenTogether.init(this)
         SearchHistory.init(this)
         LastPlayed.init(this)
         BoundedContextPersistence.init(this)
-        com.music.bitchord.playback.PartyPersonalQueueStash.init(this)
         // Which tracks the listener has reverted to YouTube's own upload. Read
         // by [Song.toMediaItem], so it has to be open before the restart
         // snapshot below is turned back into queue items.

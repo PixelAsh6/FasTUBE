@@ -76,7 +76,6 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Headphones
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.Watch
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,8 +90,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -130,7 +127,6 @@ import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.ui.icons.BitChordIcons
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.NerdStats
-import com.music.bitchord.data.listentogether.PartyMember
 import com.music.bitchord.data.settings.TrackAnalysisState
 import com.music.bitchord.data.settings.AudioQuality
 import com.music.bitchord.data.model.Song
@@ -157,14 +153,12 @@ private const val SHUFFLE_TAP_WINDOW_MS = 400L
 private const val AUTOPLAY_TAP_WINDOW_MS = 700L
 
 /**
- * "Playing from …", "Played by …" or the radio station — what the player is
- * playing *out of*, in the words the caption uses.
+ * "Playing from …" or the radio station — what the player is playing *out of*,
+ * in the words the caption uses.
  */
 @Composable
-internal fun playbackOriginText(song: Song, playedBy: String?): String =
-    playedBy?.let {
-        stringResource(Res.string.played_by, it)
-    } ?: song.radioName?.let {
+internal fun playbackOriginText(song: Song): String =
+    song.radioName?.let {
         stringResource(Res.string.playing_radio, it)
     } ?: stringResource(
         Res.string.playing_from,
@@ -423,17 +417,6 @@ private fun NerdStatsLines(song: Song) {
     val smartFadeOn by PlayerSettings.smartFadeEnabled.collectAsStateWithLifecycle()
     val smartAnalysis by PlayerSettings.smartAnalysis.collectAsStateWithLifecycle()
     val automixDetail by PlayerSettings.automixDetail.collectAsStateWithLifecycle()
-    // A party doesn't mix, and doesn't analyse for one either — see
-    // [com.music.bitchord.playback.CrossfadeController]. So the two flows above
-    // simply stop moving there, and the stats line has to say why rather than
-    // leave their last values on screen as if they still described something.
-    //
-    // Read off the party rather than published as a third flow: it is the same
-    // fact the controller and the analyzer each read for themselves, and a
-    // mirror of it could only ever disagree.
-    val inParty by remember {
-        PlayerPlatform.host.party.map { it.inParty }.distinctUntilChanged()
-    }.collectAsStateWithLifecycle(initialValue = PlayerPlatform.host.party.value.inParty)
     // A plain white line reads fine over the usual dark tile, but a light
     // stretch of an animated cover — sky, snow, a pale sleeve — washes it out
     // entirely. The shadow costs nothing on a dark background and is what
@@ -465,11 +448,6 @@ private fun NerdStatsLines(song: Song) {
                 // reads the same way every time and the eye can find the half
                 // it wants without re-parsing the sentence.
                 text = when {
-                    // Ahead of the video case because it is the broader one:
-                    // in a party nothing is analysed for any song, video or
-                    // not, so naming the video limitation there would describe
-                    // a rule that is not the one in force.
-                    inParty -> stringResource(Res.string.automix_stopped_in_party)
                     song.isVideoOrigin ->
                         stringResource(Res.string.automix_not_supported_video)
                     // The detailed line once the controller has one: each song's
@@ -637,8 +615,7 @@ internal fun TransportRow(
     isLoading: Boolean,
     /**
      * Lit whenever back has something to do — a track to step to, or enough
-     * elapsed to restart this one. Faded and inert, not removed, while a party
-     * host holds the controls: the transport keeps its shape either way.
+     * elapsed to restart this one. Faded and inert, not removed.
      */
     previousEnabled: Boolean,
     nextEnabled: Boolean,
@@ -766,7 +743,7 @@ internal fun VolumeRow(
 /**
  * Lyrics, the capsule, and the queue — the row both layouts end on.
  *
- * The capsule swaps: output and party normally, the three playback modes while
+ * The capsule swaps: the output normally, the three playback modes while
  * the queue is up, since that is when they are what you are about to reach for.
  * It stays centred between the two glyphs either way.
  */
@@ -783,17 +760,12 @@ internal fun PlayerActionRow(
     onCycleRepeat: () -> Unit,
     onToggleAutoplay: () -> Unit,
     onOpenOutput: () -> Unit,
-    onListenTogether: () -> Unit,
-    /** Opens [ListenTogetherMembersSheet] rather than settings directly. */
-    onOpenListenTogetherMembers: () -> Unit,
 ) {
-    val showPartyButton by PlayerSettings.showListenTogetherButton.collectAsStateWithLifecycle()
-    val inParty = rememberPartyBadge().inParty
     // Just the output glyph in the middle.
-    val compact = !queueOpen && !showPartyButton && !inParty
+    val compact = !queueOpen
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // Sized for the wider of the two capsules — the three-up one — whether
-        // that or the output/party one is up, so the lyrics and queue glyphs
+        // that or the output one is up, so the lyrics and queue glyphs
         // hold still as they swap. A lone output glyph is spaced as though the
         // two-up capsule held it — closer in, without crowding — and they part
         // again as the queue opens to make room.
@@ -840,8 +812,6 @@ internal fun PlayerActionRow(
                 label = "playerBottomPill",
             ) { showQueueModes ->
                 if (showQueueModes) {
-                    // Spaced the same as the output/party capsule, so the two
-                    // read as one control growing a segment.
                     Pill {
                         PillSegment(
                             icon = BitChordIcons.Shuffle,
@@ -887,11 +857,7 @@ internal fun PlayerActionRow(
                         )
                     }
                 } else {
-                    OutputPartyPill(
-                        onOutput = onOpenOutput,
-                        onParty = onListenTogether,
-                        onOpenMembers = onOpenListenTogetherMembers,
-                    )
+                    OutputPartyPill(onOutput = onOpenOutput)
                 }
             }
             Box(
@@ -1270,22 +1236,16 @@ private const val BOTTOM_ACTIVE_TILE_ALPHA = 0.62f
  * One half of the output capsule — wider than it is tall, so the capsule reads
  * as a capsule rather than as two circles that have been pushed together.
  */
-// The count reserve is kept on both halves, so entering a party never makes
-// the capsule lopsided or shifts the queue control beside it.
 private val PILL_SEGMENT_WIDTH = 64.dp
 
 /**
  * Optical sizes, not equal ones.
  *
- * Headphones is a tall, narrow glyph and Person a taller, narrower one, so
- * drawn at the same nominal size the second reads as the bigger of the two.
- * These are the numbers at which they look like a matched pair. Every other
- * output glyph is fitted to the box Headphones fills at that size — 75% of it
- * tall, at most 85% wide — either in its own drawable or by
+ * Every output glyph is fitted to the box Headphones fills at the nominal
+ * size — 75% of it tall, at most 85% wide — either in its own drawable or by
  * [PILL_OUTPUT_WIDE_SIZE] / [PILL_OUTPUT_TALL_SIZE] for the Material ones.
  */
 private val PILL_OUTPUT_SIZE = 23.dp
-private val PILL_PARTY_SIZE = 22.dp
 
 /** Cast and Tv run 92% of their box wide; at 23dp they read bigger than the rest. */
 private val PILL_OUTPUT_WIDE_SIZE = 21.dp
@@ -1355,71 +1315,25 @@ private fun PillDivider() {
 }
 
 /**
- * The two ends of "where is this playing": the output capsule.
- *
- * Both halves answer the same question and so belong to one control rather than
- * two glyphs that happen to sit side by side — the device the sound leaves by
- * (see [rememberOutputGlyph]), the party for which *people* it reaches.
+ * "Where is this playing": the output capsule, drawn as a glyph matching the
+ * lyrics and queue glyphs either side.
  *
  * Video vs audio-only used to live here as a third segment; it now lives in
  * the player's own three-dot menu, beside Revert to original and Upgrade
- * quality — the same kind of choice, offered the same way. This capsule is
- * back to the two icons it always otherwise had, at their original spacing.
+ * quality — the same kind of choice, offered the same way.
  */
 @Composable
 private fun OutputPartyPill(
     onOutput: () -> Unit,
-    onParty: () -> Unit,
-    /** Who's in it, before the settings page — see [ListenTogetherMembersSheet]. */
-    onOpenMembers: () -> Unit,
 ) {
-    val badge = rememberPartyBadge()
-    val shown by PlayerSettings.showListenTogetherButton.collectAsStateWithLifecycle()
     val output = rememberOutputGlyph()
-    // Party half hidden only outside a party: once in one, this is the way to
-    // who's in it. Without it the output glyph stands alone, drawn like the
-    // lyrics and queue glyphs either side rather than as half a capsule.
-    if (!shown && !badge.inParty) {
-        BottomGlyph(
-            icon = output.icon,
-            iconSize = output.size * (BOTTOM_ICON_SIZE / PILL_OUTPUT_SIZE),
-            contentDescription = stringResource(Res.string.audio_output),
-            onClick = onOutput,
-            vibrant = true,
-        )
-        return
-    }
-    Pill {
-        PillSegment(
-            icon = output.icon,
-            iconSize = output.size,
-            contentDescription = stringResource(Res.string.audio_output),
-            onClick = onOutput,
-            vibrant = true,
-        )
-        PillDivider()
-        PillSegment(
-            // Person rather than Groups: the three-person glyph is drawn half
-            // the height of Headphones and wider than the segment holding it,
-            // so the two halves of the capsule never looked like a pair.
-            icon = Icons.Rounded.Person,
-            iconSize = PILL_PARTY_SIZE,
-            // The count is here and nowhere else: spoken, it is the whole
-            // point of the control; drawn, it would cost the capsule its
-            // symmetry for something the caption below already implies.
-            contentDescription = if (badge.inParty) {
-                stringResource(Res.string.listen_together_open_count, badge.members)
-            } else {
-                stringResource(Res.string.listen_together_open)
-            },
-            // Already in a party, this opens who's in it rather than the
-            // settings page directly; there is nothing to create or join once
-            // there is a party, so [onParty] only ever fires beforehand.
-            onClick = if (badge.inParty) onOpenMembers else onParty,
-            highlighted = badge.inParty,
-            trailingLabel = badge.members.takeIf { badge.inParty }?.toString(),
-        )
-    }
+    BottomGlyph(
+        icon = output.icon,
+        iconSize = output.size * (BOTTOM_ICON_SIZE / PILL_OUTPUT_SIZE),
+        contentDescription = stringResource(Res.string.audio_output),
+        onClick = onOutput,
+        vibrant = true,
+    )
 }
 
 /**
@@ -1482,7 +1396,7 @@ private fun PillSegment(
     loading: Boolean = false,
     /** See [BottomGlyph], where the same window means the same thing. */
     tapWindowMs: Long = 0L,
-    /** Per-segment override — see [OutputPartyPill]'s three-up capsule. */
+    /** Per-segment override — see the queue's three-up capsule. */
     width: Dp = PILL_SEGMENT_WIDTH,
     /** See [BottomGlyph], where the same flag means the same thing. */
     vibrant: Boolean = false,
@@ -1569,39 +1483,27 @@ private fun PillSegment(
 }
 
 /**
- * The line under the transport: normally the output, and the party's name
- * whenever there is one.
+ * The line under the transport: the output the music is leaving by.
  *
- * A party overrides the output rather than sitting beside it because the two
- * are not the same kind of fact. "Kushagra's Phone" answers which speaker in
- * this room; once there are four devices playing the same song, the room is no
- * longer what the listener is checking. The tap follows the label — whichever
- * one is on screen is the thing it opens.
+ * "Kushagra's Phone" answers which speaker in this room — the one fact the
+ * listener is checking when they look down here.
  */
 @Composable
 internal fun OutputCaption(
     accountName: String?,
     onOpenOutput: () -> Unit,
-    /** Who's in it, before the settings page — see [ListenTogetherMembersSheet]. */
-    onOpenMembers: () -> Unit,
 ) {
-    val badge = rememberPartyBadge()
     val outputName = rememberAudioOutputName(accountName)
     val outputFormat by PlayerPlatform.host.outputFormat.collectAsStateWithLifecycle()
     // The shine means one thing: the DAC has this track to itself, bit-perfect
     // or at the most the DAC can take. Anything weaker — a hi-res stream on a
     // float-capable route — still passes through Android's mixer, which may
     // resample it, so it no longer earns the same mark.
-    // The host's first name, exactly as the output line already shortens the
-    // account's — "Kushagra's Jam" alongside "Kushagra's Phone".
-    val jamName = badge.hostFirstName
-        ?.let { stringResource(Res.string.listen_together_jam, it) }
-        ?: stringResource(Res.string.listen_together_jam_unnamed)
     val captionModifier = Modifier
         .fillMaxWidth(0.65f)
         .additiveChrome(LocalPlayerChrome.current)
-        .clickable { if (badge.inParty) onOpenMembers() else onOpenOutput() }
-    if (!badge.inParty && (outputFormat.bitPerfect || outputFormat.dacLimited)) {
+        .clickable(onClick = onOpenOutput)
+    if (outputFormat.bitPerfect || outputFormat.dacLimited) {
         ShimmerText(
             text = outputName,
             style = MaterialTheme.typography.labelSmall.copy(
@@ -1613,7 +1515,7 @@ internal fun OutputCaption(
         )
     } else {
         Text(
-            text = if (badge.inParty) jamName else outputName,
+            text = outputName,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
             color = chromeWhite(0.55f),
             maxLines = 1,
@@ -1622,60 +1524,6 @@ internal fun OutputCaption(
             modifier = captionModifier,
         )
     }
-}
-
-/** The three fields of a party the player draws — see [OutputPartyPill]. */
-private data class PartyBadge(
-    val inParty: Boolean,
-    val members: Int,
-    val hostFirstName: String?,
-)
-
-private fun PartyUi.badge(): PartyBadge = PartyBadge(
-    inParty = inParty,
-    members = members.size,
-    hostFirstName = members.firstOrNull(PartyMember::isHost)
-        ?.displayName
-        ?.trim()
-        ?.split(Regex("\\s+"))
-        ?.firstOrNull()
-        ?.takeIf { it.isNotBlank() },
-)
-
-/**
- * Whether the host has taken control of the party this device is listening in.
- *
- * Same `distinctUntilChanged` treatment as [rememberPartyBadge], and for the
- * same reason: this answer changes about twice a party, while the state it is
- * read from is replaced every few seconds.
- *
- * @see ListenTogether.State.controlsLocked
- */
-@Composable
-internal fun rememberControlsLocked(): Boolean {
-    val locked = remember {
-        PlayerPlatform.host.party.map { it.controlsLocked }.distinctUntilChanged()
-    }
-    return locked
-        .collectAsStateWithLifecycle(initialValue = PlayerPlatform.host.party.value.controlsLocked)
-        .value
-}
-
-/**
- * [PartyBadge] as it changes, and only when it actually does.
- *
- * `distinctUntilChanged` is the point of this: the party's own state is
- * replaced on every heartbeat and every position report, none of which move any
- * of these three fields.
- */
-@Composable
-private fun rememberPartyBadge(): PartyBadge {
-    val badges = remember {
-        PlayerPlatform.host.party.map { it.badge() }.distinctUntilChanged()
-    }
-    return badges
-        .collectAsStateWithLifecycle(initialValue = PlayerPlatform.host.party.value.badge())
-        .value
 }
 
 @Composable

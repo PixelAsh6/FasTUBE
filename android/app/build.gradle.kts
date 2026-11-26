@@ -36,24 +36,6 @@ val lastfmSecret: String = (
     ).trim()
 
 /*
- * Where Listen Together's party server lives. Not a credential — it is a public
- * URL, and every device in a party has to be pointed at the same one — but it is
- * deployment-specific rather than a property of the source, which is what puts
- * it here beside the others instead of in a constant.
- *
- * Empty is a supported state, not a broken build: the field below is only the
- * *default* the address box on the Listen Together screen starts with, and
- * anything typed there wins and persists. So a fresh checkout without this line
- * builds and runs, and simply asks for an address the first time somebody opens
- * the screen. See ListenTogether.DEFAULT_SERVER.
- */
-val listenTogetherServer: String = (
-    localProps.getProperty("LISTEN_TOGETHER_SERVER")
-        ?: System.getenv("LISTEN_TOGETHER_SERVER")
-        ?: "https://bitchord-listen-together.onrender.com"
-    ).trim().trimEnd('/')
-
-/*
  * The service that checks this app's hardware key attestation and issues addon
  * tokens. See AddonAuth. Overridable for a staging deployment. A fork that
  * points this at its own server gains nothing: addons only trust tokens signed
@@ -95,11 +77,6 @@ android {
         // Last.fm credentials are supplied locally and never committed.
         buildConfigField("String", "LASTFM_API_KEY", "\"${lastfmApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         buildConfigField("String", "LASTFM_SECRET", "\"${lastfmSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
-        buildConfigField(
-            "String",
-            "LISTEN_TOGETHER_SERVER",
-            "\"${listenTogetherServer.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
-        )
         buildConfigField(
             "String",
             "ADDON_AUTH_URL",
@@ -372,11 +349,10 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze:1.3.1")
     implementation("dev.chrisbanes.haze:haze-materials:1.3.1")
 
-    // ---- QR encoding, for the party invite ----
+    // ---- QR encoding ----
     // `core` only: the `android-core`/`zxing-android-embedded` artifacts bring
-    // a camera scanner and an Activity with it, and nothing here reads a code —
-    // a party is joined by tapping somebody else's link or typing six
-    // characters. This produces the bit matrix; the drawing is ours, in
+    // a camera scanner and an Activity with it, and nothing here reads a code.
+    // This produces the bit matrix; the drawing is ours, in
     // [com.music.bitchord.ui.components.QrCode], so the result is styled like
     // the rest of the app rather than a stock black-and-white bitmap.
     implementation("com.google.zxing:core:3.5.3")

@@ -103,9 +103,6 @@ fun GlassNavBar(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
-    /** @see com.music.bitchord.data.listentogether.ListenTogether.State.controlsLocked */
-    controlsLocked: Boolean = false,
-    onBlockedControl: () -> Unit = {},
     /** Where the player's artwork lands when it closes into this bar. */
     dock: PlayerDock? = null,
     /** Dragging the bar's player up into the full player. */
@@ -165,8 +162,6 @@ fun GlassNavBar(
                     onNext = onNext,
                     onPrevious = onPrevious,
                     onExpand = onExpand,
-                    controlsLocked = controlsLocked,
-                    onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
                     modifier = accessoryModifier.then(glassSurface()),
@@ -187,8 +182,6 @@ fun GlassNavBar(
                     onNext = onNext,
                     onPrevious = onPrevious,
                     onExpand = onExpand,
-                    controlsLocked = controlsLocked,
-                    onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
                     modifier = accessoryModifier.fillMaxWidth().then(glassSurface()),
@@ -309,8 +302,6 @@ private fun GlassNowPlaying(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onExpand: () -> Unit,
-    controlsLocked: Boolean,
-    onBlockedControl: () -> Unit,
     dock: PlayerDock?,
     pull: MiniPlayerPull?,
     modifier: Modifier = Modifier,
@@ -369,8 +360,6 @@ private fun GlassNowPlaying(
                     haptics.play(Haptic.SkipPrevious)
                     onPrevious()
                 },
-                locked = controlsLocked,
-                onBlocked = onBlockedControl,
             )
             .graphicsLayer {
                 scaleX = pressScale
@@ -486,12 +475,11 @@ private fun GlassNowPlaying(
                         nextMotion.onTap()
                         onNext()
                     },
-                    enabled = !controlsLocked,
                     modifier = Modifier.size(glyphSlot),
                 ) {
                     MiniPlayerNextGlyph(
                         motion = nextMotion,
-                        tint = contentColor.copy(alpha = if (controlsLocked) 0.3f else 1f),
+                        tint = contentColor,
                     )
                 }
             }

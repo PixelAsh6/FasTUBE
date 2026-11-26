@@ -553,7 +553,7 @@ fun AddonEditorAlert(
     /**
      * What [onRemove] is called, for the callers that are not removing a source.
      *
-     * The party server's address wears this same card — one field, an address
+     * An addon's server address wears this same card — one field, an address
      * to test, four stacked actions — and "Remove source" would be the one line
      * on it still talking about addons.
      */

@@ -98,9 +98,9 @@ class AppNavigatorTest {
     @Test
     fun pushAllStartsFromWhicheverRouteIsShowing() {
         navigator.push(AppRoute.Settings)
-        navigator.pushAll(AppRoute.Settings, AppRoute.ListenTogether)
-        assertEquals(listOf(AppRoute.Settings, AppRoute.ListenTogether), navigator.entries.map { it.route })
-        navigator.pushAll(AppRoute.Settings, AppRoute.ListenTogether)
+        navigator.pushAll(AppRoute.Settings, AppRoute.Equalizer)
+        assertEquals(listOf(AppRoute.Settings, AppRoute.Equalizer), navigator.entries.map { it.route })
+        navigator.pushAll(AppRoute.Settings, AppRoute.Equalizer)
         assertEquals(2, navigator.entries.size)
     }
 
@@ -114,9 +114,9 @@ class AppNavigatorTest {
         assertFalse(navigator.pop())
 
         releases += "album"
-        navigator.reset(AppRoute.Settings, AppRoute.ListenTogether)
+        navigator.reset(AppRoute.Settings, AppRoute.Equalizer)
         assertTrue(releases.isEmpty())
-        assertEquals(AppRoute.ListenTogether, navigator.visibleRoute())
+        assertEquals(AppRoute.Equalizer, navigator.visibleRoute())
     }
 
     @Test

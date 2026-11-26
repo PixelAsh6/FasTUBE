@@ -322,20 +322,6 @@ suspend fun MediaController.commitRadioQueue() {
 }
 
 
-/**
- * Marks the span of a queue-row drag — see [PartySync.beginQueueDrag]. Each
- * neighbour the row crosses is still its own `moveMediaItem`, sent the moment
- * it happens so the local queue and the on-screen list stay in step; this only
- * tells a jam's party sync to hold its publish until the row is dropped,
- * instead of sending one for every neighbour crossed along the way.
- */
-fun MediaController.setQueueDragActive(active: Boolean) {
-    sendCustomCommand(
-        SessionCommand(ACTION_QUEUE_DRAG, Bundle.EMPTY),
-        bundleOf(EXTRA_QUEUE_DRAG_ACTIVE to active),
-    )
-}
-
 /** A queue-screen swipe moves this occurrence rather than adding a second copy. */
 suspend fun MediaController.moveQueueEntryToUser(index: Int, song: Song): Boolean =
     try {
@@ -356,7 +342,7 @@ suspend fun MediaController.moveQueueEntryToUser(index: Int, song: Song): Boolea
 /**
  * A queue-screen tap on a history row: played again at the playhead, keeping
  * later history as history. False when the service left the queue as it was
- * (a party, a bounded context, a row that moved): seek to it instead.
+ * (a bounded context, a row that moved): seek to it instead.
  */
 suspend fun MediaController.replayFromHistory(index: Int, song: Song): Boolean =
     try {

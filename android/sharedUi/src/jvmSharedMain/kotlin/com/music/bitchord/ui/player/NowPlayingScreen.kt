@@ -853,8 +853,6 @@ private fun SlidingPlayerDeck(
 @OptIn(ExperimentalHazeApi::class, ExperimentalHazeMaterialsApi::class)
 fun NowPlayingScreen(
     song: Song,
-    /** Who selected this track in the active Listen Together session. */
-    playedBy: String? = null,
     isPlaying: Boolean,
     isLoading: Boolean,
     /**
@@ -888,13 +886,6 @@ fun NowPlayingScreen(
     previousRestarts: () -> Boolean,
     /** Read at dispatch so automatic advance cannot turn one swipe into two skips. */
     currentPlaybackSong: () -> Song?,
-    /**
-     * A control the host has taken away was reached for anyway.
-     *
-     * The buttons are gone while a party is locked, but a swipe has no button
-     * to remove — so the gesture answers instead of silently doing nothing.
-     */
-    onBlockedControl: () -> Unit,
     onSeek: (Long) -> Unit,
     /**
      * Seek to a fraction of the track, for the scrubber.
@@ -914,14 +905,6 @@ fun NowPlayingScreen(
     onJumpTo: (Int) -> Unit,
     onRemoveFromQueue: (Int) -> Unit,
     onMoveInQueue: (Int, Int) -> Unit,
-    /**
-     * A queue row started or stopped being dragged.
-     *
-     * Lets the caller tell a jam's party sync that a reorder is in progress, so
-     * it can hold its publish until the row is dropped instead of sending one
-     * for every neighbour the drag crosses. See [PartySync.beginQueueDrag].
-     */
-    onQueueDragActiveChange: (Boolean) -> Unit = {},
     onClearQueue: () -> Unit,
     onQueueSongMenu: (Int, Song) -> Unit = { _, _ -> },
     onQueueSwipeToQueue: suspend (Int, Song) -> Boolean = { _, _ -> false },
@@ -939,14 +922,6 @@ fun NowPlayingScreen(
     onOpenArtist: (browseId: String?, name: String) -> Unit,
     /** Return to the queue-level page named by the caption above the player. */
     onOpenPlaybackSource: () -> Unit,
-    /**
-     * Open Listen Together, from the party half of the output capsule.
-     *
-     * The player does not decide whether it has to get out of the way first:
-     * the settings page it opens is drawn under the player sheet, and closing
-     * the sheet is the caller's business.
-     */
-    onListenTogether: () -> Unit,
     lyrics: List<LyricLine>?,
     lyricsSource: LyricsSource?,
     lyricsProviderStates: Map<LyricsSource, LyricsProviderState>,
@@ -1013,15 +988,6 @@ fun NowPlayingScreen(
     var showLyricsProviders by remember { mutableStateOf(false) }
     // Gated on the Bluetooth permission the first time — see [rememberOutputPicker].
     val openAudioOutput = rememberOutputPicker { showAudioOutput = true }
-    // Listening in a party whose host has taken the controls: the transport
-    // keeps only play/pause, which from here moves this device alone.
-    val controlsLocked = rememberControlsLocked()
-    var showListenTogetherMembers by remember { mutableStateOf(false) }
-    // Who's actually in the party is worth a look before the settings page —
-    // see [ListenTogetherMembersSheet]. Only meaningful once there is a party
-    // to show, so the pill and the caption fall back to [onListenTogether]
-    // itself (create/join) when there isn't one.
-    val openListenTogetherMembers: () -> Unit = { showListenTogetherMembers = true }
 
     val syncedLyricsEnabled by PlayerSettings.syncedLyrics.collectAsStateWithLifecycle()
     val hideLyricsPreview by PlayerSettings.hideLyricsPreview.collectAsStateWithLifecycle()
@@ -1184,8 +1150,8 @@ fun NowPlayingScreen(
         mutableStateOf(restoredPlayerScreen == LastPlayerScreen.QUEUE)
     }
     val queueSelection = remember { QueueSelectionState() }
-    LaunchedEffect(queueOpen, controlsLocked) {
-        if (!queueOpen || controlsLocked) queueSelection.clear()
+    LaunchedEffect(queueOpen) {
+        if (!queueOpen) queueSelection.clear()
     }
     var lyricsOpen by remember {
         mutableStateOf(restoredPlayerScreen == LastPlayerScreen.LYRICS)
@@ -1301,7 +1267,7 @@ fun NowPlayingScreen(
     val overlayOpen = remember {
         derivedStateOf {
             currentMenuOpen() || showAudioPipeline || showCast || showAudioOutput || showVideoQuality ||
-                showLyricsProviders || showListenTogetherMembers || lyricsShare != null || currentLyricsOffsetOpen
+                showLyricsProviders || lyricsShare != null || currentLyricsOffsetOpen
         }
     }
     val lyricsShareEnabled = lyricsShareAvailable
@@ -1388,8 +1354,6 @@ fun NowPlayingScreen(
     PlayerBackHandler(enabled = showVideoQuality) { showVideoQuality = false }
 
     PlayerBackHandler(enabled = showLyricsProviders) { showLyricsProviders = false }
-
-    PlayerBackHandler(enabled = showListenTogetherMembers) { showListenTogetherMembers = false }
 
     PlayerBackHandler(enabled = showAudioPipeline) { showAudioPipeline = false }
 
@@ -1788,13 +1752,11 @@ fun NowPlayingScreen(
     // position into the same space as the two edges above.
     var dismissBandSpace by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
-    // Where the caption above the credits leads: the party for a track someone
-    // else queued, the queue itself for a queue-built session, and otherwise
-    // back to the album or playlist the session was started from.
+    // Where the caption above the credits leads: the queue itself for a
+    // queue-built session, and otherwise back to the album or playlist the
+    // session was started from.
     val openPlaybackOrigin: () -> Unit = {
-        if (playedBy != null) {
-            onListenTogether()
-        } else if (song.playbackSourceType == PlaybackSourceType.QUEUE) {
+        if (song.playbackSourceType == PlaybackSourceType.QUEUE) {
             queueOpen = true
             closeLyrics()
         } else {
@@ -1809,22 +1771,18 @@ fun NowPlayingScreen(
     val startInfoDrag by rememberUpdatedState {
         infoTransition.beginDrag(
             song = song,
-            next = songInfoNeighbour(queue, queueIndex, next = true, available = hasNext && !controlsLocked),
+            next = songInfoNeighbour(queue, queueIndex, next = true, available = hasNext),
             // Freeze the preview decision for this gesture, not the transport's
             // existing release-time restart decision.
             previous = songInfoNeighbour(
                 queue, queueIndex, next = false,
-                available = !controlsLocked && !previousRestarts(),
+                available = !previousRestarts(),
             ),
         )
     }
     val releaseInfoDrag by rememberUpdatedState { total: Float ->
         val crossed = total <= -swipeThreshold || total >= swipeThreshold
         when {
-            controlsLocked -> {
-                infoTransition.cancelDrag()
-                if (crossed) onBlockedControl()
-            }
             total <= -swipeThreshold -> {
                 haptics.play(Haptic.SkipNext)
                 infoTransition.finishDrag(
@@ -1841,7 +1799,7 @@ fun NowPlayingScreen(
             else -> infoTransition.cancelDrag()
         }
     }
-    val skipSwipeGesture = Modifier.pointerInput(showAudioPipeline, showCast, panelScrolling, controlsLocked, queueOpen) {
+    val skipSwipeGesture = Modifier.pointerInput(showAudioPipeline, showCast, panelScrolling, queueOpen) {
         if (showAudioPipeline || showCast || panelScrolling || queueOpen) return@pointerInput
         var total = 0f
         var acceptsDrag = false
@@ -1872,9 +1830,8 @@ fun NowPlayingScreen(
 
     // The scrubber's two halves, shared by both layouts so a drop point is held
     // the same way in each — see [PlayerScrub.pendingSeek].
-    val scrubControlsLocked = rememberUpdatedState(controlsLocked)
     val onScrub: (Float) -> Unit = { fraction ->
-        if (!scrubControlsLocked.value) PlayerPlatform.host.onAutoMixScrubIntent()
+        PlayerPlatform.host.onAutoMixScrubIntent()
         scrub.drag(fraction)
     }
     val onScrubFinished: () -> Unit = {
@@ -1903,8 +1860,6 @@ fun NowPlayingScreen(
             onCycleRepeat = onCycleRepeat,
             onToggleAutoplay = onToggleAutoplay,
             onOpenOutput = openAudioOutput,
-            onListenTogether = onListenTogether,
-            onOpenListenTogetherMembers = openListenTogetherMembers,
         )
         // Keep the current output caption visible in every state, except on
         // a phone on its side: its left column is only a phone's width tall,
@@ -1919,7 +1874,6 @@ fun NowPlayingScreen(
                 OutputCaption(
                     accountName = accountName,
                     onOpenOutput = openAudioOutput,
-                    onOpenMembers = openListenTogetherMembers,
                 )
             }
         }
@@ -1964,16 +1918,6 @@ fun NowPlayingScreen(
             PlayerPlatform.host.CastDialog(
                 hazeState = playerHaze,
                 onDismiss = { showCast = false },
-            )
-        }
-        if (showListenTogetherMembers) {
-            ListenTogetherMembersSheet(
-                hazeState = playerHaze,
-                onDismiss = { showListenTogetherMembers = false },
-                onManage = {
-                    showListenTogetherMembers = false
-                    onListenTogether()
-                },
             )
         }
         if (lyricsOffsetOpen) {
@@ -2306,8 +2250,8 @@ fun NowPlayingScreen(
                         TransportRow(
                             isPlaying = isPlaying,
                             isLoading = isLoading || audioVersionSwitching,
-                            previousEnabled = !controlsLocked && (hasPrevious || pastRestartPoint),
-                            nextEnabled = !controlsLocked && hasNext,
+                            previousEnabled = hasPrevious || pastRestartPoint,
+                            nextEnabled = hasNext,
                             onPrevious = onPrevious,
                             onPlayPause = onPlayPause,
                             onNext = onNext,
@@ -2527,7 +2471,7 @@ fun NowPlayingScreen(
                     mainPane = { compact ->
                         LandscapeMainPane(
                             compact = compact,
-                            caption = if (hideSongStatus) null else playbackOriginText(song, playedBy),
+                            caption = if (hideSongStatus) null else playbackOriginText(song),
                             onOpenCaption = openPlaybackOrigin,
                             credits = {
                                 LandscapeCredits(
@@ -2585,9 +2529,8 @@ fun NowPlayingScreen(
                                 TransportRow(
                                     isPlaying = isPlaying,
                                     isLoading = isLoading || audioVersionSwitching,
-                                    previousEnabled = !controlsLocked &&
-                                        (hasPrevious || pastRestartPoint),
-                                    nextEnabled = !controlsLocked && hasNext,
+                                    previousEnabled = hasPrevious || pastRestartPoint,
+                                    nextEnabled = hasNext,
                                     onPrevious = onPrevious,
                                     onPlayPause = onPlayPause,
                                     onNext = onNext,
@@ -2684,14 +2627,12 @@ fun NowPlayingScreen(
                             queue = queue,
                             currentIndex = queueIndex,
                             autoplayEnabled = autoplayEnabled,
-                            controlsLocked = controlsLocked,
                             hazeState = queueHaze,
                             onJumpTo = onJumpTo,
                             onRemove = onRemoveFromQueue,
                             onMove = onMoveInQueue,
                             onClear = onClearQueue,
                             onSongMenu = onQueueSongMenu,
-                            onDragActiveChange = onQueueDragActiveChange,
                             onSwipeToQueue = onQueueSwipeToQueue,
                             gesturesEnabled = queueOpen && !lyricsOpen && !queueDragging,
                             undoNotice = queueUndoNotice,
@@ -3195,7 +3136,7 @@ fun NowPlayingScreen(
                         if (!hideSongStatus) {
                             WhileShown({ !collapseAlmostDone }) {
                                 PlaybackOriginCaption(
-                                    text = playbackOriginText(song, playedBy),
+                                    text = playbackOriginText(song),
                                     onClick = openPlaybackOrigin,
                                     textAlign = TextAlign.Center,
                                     contentPadding = PaddingValues(start = PLAYER_GUTTER, end = PLAYER_GUTTER, bottom = 1.dp),
@@ -4485,7 +4426,6 @@ fun NowPlayingScreen(
                                     queue = queue,
                                     currentIndex = queueIndex,
                                     autoplayEnabled = autoplayEnabled,
-                                    controlsLocked = controlsLocked,
                                     hazeState = queueHaze,
                                     onJumpTo = onJumpTo,
                                     onRemove = onRemoveFromQueue,
@@ -4499,7 +4439,6 @@ fun NowPlayingScreen(
                                     selection = queueSelection,
                                     onBulkAction = onQueueBulkAction,
                                     onRemoveSelected = onQueueRemoveEntries,
-                                    onDragActiveChange = onQueueDragActiveChange,
                                     onAddAllToPlaylist = onQueueAddAllToPlaylist,
                                     playerDeckInset = queueDeckInset,
                                     collapsePlayerOnScroll = true,
@@ -4640,9 +4579,8 @@ fun NowPlayingScreen(
                         TransportRow(
                             isPlaying = isPlaying,
                             isLoading = isLoading || audioVersionSwitching,
-                            previousEnabled = !controlsLocked &&
-                                (hasPrevious || pastRestartPoint),
-                            nextEnabled = !controlsLocked && hasNext,
+                            previousEnabled = hasPrevious || pastRestartPoint,
+                            nextEnabled = hasNext,
                             onPrevious = onPrevious,
                             onPlayPause = onPlayPause,
                             onNext = onNext,

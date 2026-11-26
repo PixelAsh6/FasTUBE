@@ -70,14 +70,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.Upgrade
-import com.music.bitchord.data.listentogether.ServerConnectionState
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import androidx.compose.material3.DropdownMenu
@@ -135,9 +133,6 @@ import com.music.bitchord.auth.WebSessionMode
 import com.music.bitchord.auth.YtMusicLoginScreen
 import com.music.bitchord.data.AppUpdateChecker
 import com.music.bitchord.data.LocalMediaRepository
-import com.music.bitchord.data.listentogether.JamInviteLink
-import com.music.bitchord.data.listentogether.ListenTogether
-import com.music.bitchord.data.listentogether.partyQueueIndexOf
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.TrackLog
 import com.music.bitchord.data.innertube.InnertubeParser
@@ -192,8 +187,6 @@ import com.music.bitchord.ui.screens.libraryDeviceItems
 import com.music.bitchord.ui.screens.SPOTIFY_BROWSE_ID
 import com.music.bitchord.ui.screens.libraryLinks
 import com.music.bitchord.ui.screens.CACHE_FOLDER_BROWSE_ID
-import com.music.bitchord.ui.screens.ListenTogetherScreen
-import com.music.bitchord.ui.screens.PartyServerEditor
 import com.music.bitchord.ui.screens.SignatureApiEditor
 import com.music.bitchord.ui.screens.SettingsScreen
 import com.music.bitchord.ui.screens.SourceEditorAlert
@@ -214,7 +207,6 @@ import com.music.bitchord.playback.QueueShuffle
 import com.music.bitchord.playback.QueueSource
 import com.music.bitchord.playback.cast.CastController
 import com.music.bitchord.data.model.QueueTier
-import com.music.bitchord.playback.autoplayEnabledFor
 import com.music.bitchord.playback.autoplaySectionStart
 import com.music.bitchord.playback.beginRadioQueue
 import com.music.bitchord.playback.commitRadioQueue
@@ -265,7 +257,6 @@ import androidx.media3.session.MediaController
 import com.music.bitchord.playback.QualityUpgrade
 import com.music.bitchord.playback.rememberMediaController
 import com.music.bitchord.playback.rememberPlayerState
-import com.music.bitchord.playback.setQueueDragActive
 import com.music.bitchord.ui.MainViewModel
 import com.music.bitchord.ui.SearchSource
 import com.music.bitchord.ui.components.BottomFadeScrim
@@ -433,7 +424,6 @@ class MainActivity : AppCompatActivity() {
         // Before the composition, so a cold launch from a widget's artwork has
         // the request already standing by the time BitChordApp first reads it.
         PlayerDeepLink.consume(intent)
-        JamInviteLink.consume(intent)
         // Likewise for a link tapped or shared from another app — see [MusicLink].
         MusicLink.consume(intent)
         setContent {
@@ -541,7 +531,6 @@ class MainActivity : AppCompatActivity() {
         // one that just arrived and not the one the task was started with.
         setIntent(intent)
         PlayerDeepLink.consume(intent)
-        JamInviteLink.consume(intent)
         MusicLink.consume(intent)
     }
 }
@@ -697,7 +686,6 @@ private fun BitChordApp(
     var addonLeftOutOfDownload by remember {
         mutableStateOf<Pair<String, SourceRegistry.DownloadExclusion>?>(null)
     }
-    var editingPartyServer by remember { mutableStateOf(false) }
     var editingSignatureApi by remember { mutableStateOf(false) }
     var librarySortMenuOpen by remember { mutableStateOf(false) }
     var showLyricsSources by remember { mutableStateOf(false) }
@@ -814,16 +802,7 @@ private fun BitChordApp(
         browseRenameInSheet = false
         browseActions = target
     }
-    val autoplay by AppSettings.autoplay.collectAsStateWithLifecycle()
-    val partyState by ListenTogether.state.collectAsStateWithLifecycle()
-    // The same answer the playback service acts on, rather than a second one
-    // derived here — see [autoplayEnabledFor]. Drawing the local preference in
-    // a party made the toggle lie in both directions: a listener whose own
-    // switch was on sat under "AutoPlay on" in a party that had it off, got no
-    // suggestions, and pressing the button appeared to do nothing, because it
-    // turned the party's setting on while the label already said so.
-    val autoplayEnabled = autoplayEnabledFor(partyState, autoplay)
-    val partyServerStatus by ListenTogether.serverConnectionState.collectAsStateWithLifecycle()
+    val autoplayEnabled by AppSettings.autoplay.collectAsStateWithLifecycle()
     val listenBrainzToken by AppSettings.listenBrainzToken.collectAsStateWithLifecycle()
     // Set each time the search tab is tapped, which SearchScreen uses as a
     // signal to focus the input field.
@@ -941,29 +920,6 @@ private fun BitChordApp(
         override = AppSettings.streamCeilingOverride.collectAsStateWithLifecycle().value,
     )
     val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
-    val incomingJamInvite by JamInviteLink.pending.collectAsStateWithLifecycle()
-    var activeJamInviteCode by rememberSaveable { mutableStateOf<String?>(null) }
-    var activeJamInviteServer by rememberSaveable { mutableStateOf<String?>(null) }
-
-    // An invite is navigation and an action: reveal the Jam settings page now,
-    // then let that page join once an account is available. Keeping the code
-    // here lets a sign-in round trip return to the invite it started from.
-    LaunchedEffect(incomingJamInvite) {
-        val invite = incomingJamInvite ?: return@LaunchedEffect
-        activeJamInviteCode = invite.code
-        activeJamInviteServer = invite.serverUrl
-        dismissPlayer()
-        replayStory = null
-        showReplayShare = false
-        webSession = null
-        navigator.reset(AppRoute.Settings, AppRoute.ListenTogether)
-        JamInviteLink.handled()
-    }
-    LaunchedEffect(signedIn, activeJamInviteCode) {
-        if (signedIn && activeJamInviteCode != null) {
-            navigator.pushAll(AppRoute.Settings, AppRoute.ListenTogether)
-        }
-    }
     val account by viewModel.account.collectAsStateWithLifecycle()
     val selectedChannelName by viewModel.selectedChannelName.collectAsStateWithLifecycle()
     val googleAccounts by viewModel.googleAccounts.collectAsStateWithLifecycle()
@@ -1133,17 +1089,7 @@ private fun BitChordApp(
         MusicVideoEngine.attach(controller)
         onDispose { MusicVideoEngine.attach(null) }
     }
-    // A resume in a party is performed on the instant the server schedules, not
-    // when it was pressed, and nothing about the player moves in between — so
-    // the transport spends that round trip drawn as though the tap never landed.
-    // Folded into the buffering flag every play button already answers to, since
-    // to a listener the two are the same fact: it is coming, wait.
-    val awaitingPartyStart by ListenTogether.awaitingStart.collectAsStateWithLifecycle()
-    val playPauseBusy = player.isLoading || awaitingPartyStart
-    // Listening in a party whose host has taken the controls. Read once here
-    // and handed to every surface, so the player, the mini player and the glass
-    // bar can never disagree about whether this device may drive the music.
-    val controlsLocked = partyState.controlsLocked
+    val playPauseBusy = player.isLoading
     var queueNotice by remember { mutableStateOf<QueueActionNotice?>(null) }
     var queueNoticeId by remember { mutableIntStateOf(0) }
     var queueUndoNotice by remember { mutableStateOf<QueueActionNotice?>(null) }
@@ -1162,43 +1108,11 @@ private fun BitChordApp(
         delay(3_000)
         if (queueNotice?.id == shown.id) queueNotice = null
     }
-    // Why a control did nothing, on the same strip above the mini player that
-    // already answers "added to queue". Reached from every surface that had a
-    // control taken away — see [ListenTogether.State.controlsLocked].
-    val hostOnlyMessage = stringResource(R.string.listen_together_host_only_notice)
-    val showHostOnlyNotice: () -> Unit = { showQueueNotice(hostOnlyMessage) }
 
-    /**
-     * Whether the host has taken the music, and say so if they have.
-     *
-     * Every way the app starts or reorders playback funnels through one of the
-     * lambdas below, and each asks this first. Checked here rather than left to
-     * the player: the service refuses these actions anyway, but by then the tap
-     * has already been half-applied — a queue swapped with nothing to play it,
-     * or a resume of whatever the party was on — which is what a listener saw
-     * as the music flickering on and off.
-     */
-    val refusedByHost: () -> Boolean = {
-        val locked = ListenTogether.state.value.controlsLocked
-        if (locked) showHostOnlyNotice()
-        locked
-    }
-
-    /**
-     * The one play/pause every surface presses.
-     *
-     * In a locked party this still works — it stops and starts *this* device
-     * without touching the party, which is the whole of what a listener is
-     * left with. The exception is a party that is itself paused: there is
-     * nothing to join and nothing to hold out of, so the tap says why instead
-     * of starting a second of audio that [PartySync] then has to stop.
-     */
+    /** The one play/pause every surface presses. */
     val togglePlayPause: () -> Unit = {
         controller?.let { c ->
-            val party = ListenTogether.state.value
-            if (party.controlsLocked && !party.playback.isPlaying && !c.isPlaying) {
-                showHostOnlyNotice()
-            } else if (c.isPlaying) {
+            if (c.isPlaying) {
                 c.pause()
             } else {
                 c.play()
@@ -1591,50 +1505,31 @@ private fun BitChordApp(
         playRequestGeneration++
         activeRadioSeed = null
         scope.launch {
-            if (refusedByHost()) return@launch
             val c = controller ?: return@launch
             val currentTimeline = player.queue.takeIf { it.size == c.mediaItemCount }
                 ?: (0 until c.mediaItemCount).map { c.getMediaItemAt(it).toSong() }
             val currentIndex = c.currentMediaItemIndex
 
-            if (ListenTogether.state.value.inParty) {
-                val selectedSong = songs.getOrNull(index) ?: return@launch
-                val party = ListenTogether.state.value
-                val partyQueue = party.queue.items
-                val partyIndex = partyQueueIndexOf(party.queue, party.playback, party.playback.track?.videoId)
-                val upcomingPartyTracks = if (partyIndex >= 0) {
-                    partyQueue.drop(partyIndex + 1)
-                } else {
-                    emptyList()
-                }
-                val timeline = QueueCoordinator.buildPartyPlaybackQueue(
-                    tappedSong = selectedSong,
-                    source = source,
-                    upcomingPartyTracks = upcomingPartyTracks,
-                )
-                c.playSongs(timeline, 0)
+            // A Cast session still owns the full queue on the phone so the
+            // receiver can follow its existing queue semantics. The bounded
+            // service path is local-player-only; the service repeats this
+            // guard for commands that race a newly connected receiver.
+            //
+            // Any list too long to fit the window goes this way too, whatever
+            // page it came from: a whole library in the player is a whole
+            // library re-sent to every media controller on each queue edit.
+            val bounded = boundedContext || songs.size > BoundedQueuePlanner.MAX_PHYSICAL_CONTEXT
+            if (bounded && !CastController.state.value.casting) {
+                c.playBoundedContext(songs, index, source, continuationToken)
             } else {
-                // A Cast session still owns the full queue on the phone so the
-                // receiver can follow its existing queue semantics. The bounded
-                // service path is local-player-only; the service repeats this
-                // guard for commands that race a newly connected receiver.
-                //
-                // Any list too long to fit the window goes this way too, whatever
-                // page it came from: a whole library in the player is a whole
-                // library re-sent to every media controller on each queue edit.
-                val bounded = boundedContext || songs.size > BoundedQueuePlanner.MAX_PHYSICAL_CONTEXT
-                if (bounded && !CastController.state.value.casting) {
-                    c.playBoundedContext(songs, index, source, continuationToken)
-                } else {
-                    val result = QueueCoordinator.buildContextQueue(
-                        currentTimeline = currentTimeline,
-                        currentIndex = currentIndex,
-                        newContextSongs = songs,
-                        selectedIndex = index,
-                        contextSource = source,
-                    )
-                    c.playSongs(result.timeline, result.startIndex)
-                }
+                val result = QueueCoordinator.buildContextQueue(
+                    currentTimeline = currentTimeline,
+                    currentIndex = currentIndex,
+                    newContextSongs = songs,
+                    selectedIndex = index,
+                    contextSource = source,
+                )
+                c.playSongs(result.timeline, result.startIndex)
             }
             // Start playback in the mini-player; the user opens the full view by tapping it.
         }
@@ -1683,7 +1578,6 @@ private fun BitChordApp(
         playRequestGeneration++
         activeRadioSeed = null
         scope.launch {
-            if (refusedByHost()) return@launch
             val c = controller ?: return@launch
             val currentTimeline = player.queue.takeIf { it.size == c.mediaItemCount }
                 ?: (0 until c.mediaItemCount).map { c.getMediaItemAt(it).toSong() }
@@ -1709,7 +1603,7 @@ private fun BitChordApp(
      */
     val startRadio: (Song) -> Unit = { song ->
         val originalController = controller
-        if (originalController != null && !refusedByHost()) {
+        if (originalController != null) {
             val request = ++playRequestGeneration
             // Ignore AutoPlay's tail: it may legitimately grow while the
             // request is in flight and does not mean the listener chose a
@@ -1801,7 +1695,7 @@ private fun BitChordApp(
                 subtitle = pick.artistName.orEmpty(),
                 thumbnailUrl = pick.images.firstOrNull(),
             )
-        } else if (controller != null && !refusedByHost()) {
+        } else if (controller != null) {
             val request = ++playRequestGeneration
             scope.launch {
                 val songs = TopPicks.queue(pick).getOrNull().orEmpty()
@@ -1841,17 +1735,9 @@ private fun BitChordApp(
     }
     val addToQueue: (Song) -> Unit = { song ->
         scope.launch {
-            if (refusedByHost()) return@launch
             // The end of what the user queued, not the end of the queue: a song
             // asked for by name outranks whatever AutoPlay lined up behind it.
             controller?.let {
-                if (ListenTogether.state.value.inParty) {
-                    val upcoming = (it.mediaItemCount - (it.currentMediaItemIndex + 1)).coerceAtLeast(0)
-                    if (upcoming >= 25) {
-                        showQueueNotice(context.getString(R.string.party_queue_full, 25))
-                        return@launch
-                    }
-                }
                 val current = it.currentMediaItem?.toSong()
                 val timeline = player.queue.takeIf { q -> q.size == it.mediaItemCount }
                     ?: (0 until it.mediaItemCount).map { idx -> it.getMediaItemAt(idx).toSong() }
@@ -1873,15 +1759,7 @@ private fun BitChordApp(
     }
     val playNext: (Song) -> Unit = { song ->
         scope.launch {
-            if (refusedByHost()) return@launch
             controller?.let {
-                if (ListenTogether.state.value.inParty) {
-                    val upcoming = (it.mediaItemCount - (it.currentMediaItemIndex + 1)).coerceAtLeast(0)
-                    if (upcoming >= 25) {
-                        showQueueNotice(context.getString(R.string.party_queue_full, 25))
-                        return@launch
-                    }
-                }
                 val current = it.currentMediaItem?.toSong()
                 val timeline = player.queue.takeIf { q -> q.size == it.mediaItemCount }
                     ?: (0 until it.mediaItemCount).map { idx -> it.getMediaItemAt(idx).toSong() }
@@ -1981,7 +1859,6 @@ private fun BitChordApp(
     val queueSongs: (List<Song>, Boolean) -> Unit = { songs, next ->
         if (songs.isNotEmpty()) {
             scope.launch {
-                if (refusedByHost()) return@launch
                 val c = controller
                 if (c == null || c.mediaItemCount == 0) {
                     // Nothing to queue behind. "Add to queue" on a silent
@@ -1990,17 +1867,7 @@ private fun BitChordApp(
                     // never gets round to it.
                     play(songs, 0)
                 } else {
-                    val toAdd = if (ListenTogether.state.value.inParty) {
-                        val upcoming = (c.mediaItemCount - (c.currentMediaItemIndex + 1)).coerceAtLeast(0)
-                        val slotsLeft = (25 - upcoming).coerceAtLeast(0)
-                        if (slotsLeft <= 0) {
-                            showQueueNotice(context.getString(R.string.party_queue_full, 25))
-                            return@launch
-                        }
-                        songs.take(slotsLeft)
-                    } else {
-                        songs
-                    }
+                    val toAdd = songs
                     val timeline = player.queue.takeIf { q -> q.size == c.mediaItemCount }
                         ?: (0 until c.mediaItemCount).map { idx -> c.getMediaItemAt(idx).toSong() }
                     val at = QueueCoordinator.findUserQueueInsertionIndex(
@@ -2629,20 +2496,8 @@ private fun BitChordApp(
                 )
             }
             ?: effectiveSong
-        val playedBy = partyState
-            .takeIf {
-                it.inParty && it.playback.track?.videoId == displayedSong.videoId
-            }
-            ?.playback
-            ?.let { playback ->
-                playback.startedByName?.takeIf(String::isNotBlank)
-                    ?: partyState.members.firstOrNull {
-                        it.memberId == playback.startedBy
-                    }?.displayName?.takeIf(String::isNotBlank)
-            }
         NowPlayingScreen(
             song = displayedSong,
-            playedBy = playedBy,
             accountName = account?.name,
             windowWidth = windowWidth,
             windowHeight = windowHeight,
@@ -2667,7 +2522,6 @@ private fun BitChordApp(
                 } ?: true
             },
             currentPlaybackSong = { controller?.currentMediaItem?.toSong() },
-            onBlockedControl = showHostOnlyNotice,
             onSeekFraction = { fraction ->
                 controller?.let { player ->
                     // Read at the moment of the seek, not from the
@@ -2795,7 +2649,6 @@ private fun BitChordApp(
                 )
             },
             onMoveInQueue = { from, to -> controller?.moveMediaItem(from, to) },
-            onQueueDragActiveChange = { active -> controller?.setQueueDragActive(active) },
             onQueueSongMenu = { _, queueSong ->
                 menuFromQueue = true
                 menuFromPlayer = true
@@ -2924,12 +2777,6 @@ private fun BitChordApp(
             lyricsUnavailable = lyricsChecked && lyrics.isNullOrEmpty(),
             lyricsOffsetOpen = showLyricsOffset,
             onDismissLyricsOffset = { showLyricsOffset = false },
-            onListenTogether = {
-                // The player is a sheet over the page, so it has to come down
-                // for the page to be read at all.
-                dismissPlayer()
-                navigator.pushAll(AppRoute.Settings, AppRoute.ListenTogether)
-            },
             onClearQueue = {
                 // Keep what's playing and context/autoplay; drop user-queued tracks.
                 controller?.let { c ->
@@ -2988,7 +2835,6 @@ private fun BitChordApp(
         BackHandler(enabled = discordDialog != null) { discordDialog = null }
         BackHandler(enabled = editingSource != null) { editingSource = null }
         BackHandler(enabled = choosingSourceQuality != null) { choosingSourceQuality = null }
-        BackHandler(enabled = editingPartyServer) { editingPartyServer = false }
         BackHandler(enabled = editingSignatureApi) { editingSignatureApi = false }
 
         // On a tablet the page and the player stand side by side rather than
@@ -3244,22 +3090,6 @@ private fun BitChordApp(
                                 onConfirmRestore = { driveAlerts.restore = it },
                                 onDone = { navigator.pop() },
                             )
-                        } else if (pageRoute == AppRoute.ListenTogether) {
-                            ListenTogetherScreen(
-                                signedIn = signedIn,
-                                inviteCode = activeJamInviteCode,
-                                inviteServer = activeJamInviteServer,
-                                onInviteHandled = {
-                                    activeJamInviteCode = null
-                                    activeJamInviteServer = null
-                                },
-                                onSignIn = {
-                                    navigator.clear()
-                                    webSession = WebSessionMode.SIGN_IN
-                                },
-                                contentPadding = listPadding,
-                                onEditServer = { editingPartyServer = true },
-                            )
                         } else if (pageRoute == AppRoute.Equalizer) {
                             EqualizerScreen(
                                 contentPadding = listPadding,
@@ -3302,7 +3132,6 @@ private fun BitChordApp(
                                 onLyricsSources = { showLyricsSources = true },
                                 onTranslationLanguage = { showTranslationLanguage = true },
                                 onSources = { navigator.push(AppRoute.Sources) },
-                                onListenTogether = { navigator.push(AppRoute.ListenTogether) },
                                 onWearOs = { navigator.push(AppRoute.WearOs) },
                                 onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                                 onAppLanguage = { showAppLanguage = true },
@@ -3397,12 +3226,6 @@ private fun BitChordApp(
                             // page snapshot; Cast deliberately keeps the old full
                             // queue path.
                             fun playDetailSongs(songs: List<Song>, index: Int) {
-                                // Do not cancel a page's fill-in merely because a
-                                // listener tapped while the host owns playback.
-                                if (ListenTogether.state.value.controlsLocked) {
-                                    refusedByHost()
-                                    return
-                                }
                                 val source = QueueSource(
                                     page.title,
                                     PlaybackSourceType.BROWSE,
@@ -3999,7 +3822,6 @@ private fun BitChordApp(
                         AppRoute.Moods -> stringResource(R.string.find_your_mood)
                         AppRoute.AccountScrobbling -> stringResource(R.string.account_scrobbling)
                         AppRoute.Sources -> stringResource(R.string.sources)
-                        AppRoute.ListenTogether -> stringResource(R.string.listen_together)
                         AppRoute.WearOs -> stringResource(R.string.wear_os_page_title)
                         AppRoute.DriveBackup -> stringResource(R.string.drive_backup_title)
                         AppRoute.DriveDevices -> stringResource(R.string.drive_devices_title)
@@ -4081,65 +3903,6 @@ private fun BitChordApp(
                         }
                     } else null,
                     actions = {
-                        // This is intentionally scoped to Listen together: the
-                        // round-trip time is meaningful while coordinating a
-                        // party, but would be noise in the rest of the app.
-                        if (route == AppRoute.ListenTogether) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                            ) {
-                                when (val state = partyServerStatus) {
-                                    is ServerConnectionState.CustomFallback -> {
-                                        Icon(
-                                            Icons.Rounded.CloudOff,
-                                            contentDescription = stringResource(R.string.listen_together_top_bar_fallback, stringResource(R.string.listen_together_ping, state.latencyMs)),
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(14.dp),
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            text = stringResource(R.string.listen_together_ping, state.latencyMs),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.error,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                    is ServerConnectionState.CustomOnline -> {
-                                        Text(
-                                            text = stringResource(R.string.listen_together_ping, state.latencyMs),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                    is ServerConnectionState.DefaultOnline -> {
-                                        Text(
-                                            text = stringResource(R.string.listen_together_ping, state.latencyMs),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                    ServerConnectionState.Checking -> {
-                                        Text(
-                                            text = stringResource(R.string.listen_together_server_checking),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                    ServerConnectionState.Offline -> {
-                                        Text(
-                                            text = stringResource(R.string.listen_together_server_offline_dash),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.error,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                }
-                            }
-                        }
                         // Only worth surfacing where there's room for it and it won't
                         // be mistaken for a per-page action — Home, at rest.
                         if (route == null && detail == null && selectedTab == TAB_HOME) {
@@ -4417,8 +4180,6 @@ private fun BitChordApp(
                         } else {
                             playerSheetMotion::open
                         },
-                        controlsLocked = controlsLocked,
-                        onBlockedControl = showHostOnlyNotice,
                         dock = activeDock,
                         pull = playerSheetMotion.takeIf { !reducePlayerMotion },
                         modifier = Modifier.fillMaxWidth(),
@@ -4457,8 +4218,6 @@ private fun BitChordApp(
                             } else {
                                 playerSheetMotion::open
                             },
-                            controlsLocked = controlsLocked,
-                            onBlockedControl = showHostOnlyNotice,
                             dock = activeDock,
                             pull = playerSheetMotion.takeIf { !reducePlayerMotion },
                             modifier = Modifier.fillMaxWidth(),
@@ -4581,12 +4340,6 @@ private fun BitChordApp(
             ) {
                 toggle@{
                     songActions = null
-                    // A party plays one cut for everyone in it — see
-                    // [PlaybackService.smoothSwapCurrentTrackVersion].
-                    if (partyState.inParty) {
-                        showQueueNotice(versionContext.getString(R.string.version_switch_in_party))
-                        return@toggle
-                    }
                     if (switchingAudioVersion) return@toggle
                     val c = controller
                     val original = convertedFromVideo
@@ -5662,10 +5415,6 @@ private fun BitChordApp(
         ) {
             OnboardingScreen(
                 signedIn = signedIn,
-                initialName = remember {
-                    ListenTogether.nickname().ifBlank { account?.name.orEmpty() }
-                },
-                onNameChosen = ListenTogether::setNickname,
                 onSignIn = { webSession = WebSessionMode.SIGN_IN },
                 onFinish = AppSettings::setOnboardingComplete,
             )
@@ -6172,13 +5921,6 @@ private fun BitChordApp(
         // At the root with the source editor, and for the same two reasons: it
         // is a haze card that has to sample the backdrop it is *not* inside,
         // and a full-window scrim that has to be full-window.
-        if (editingPartyServer) {
-            PartyServerEditor(
-                hazeState = hazeState,
-                onDismiss = { editingPartyServer = false },
-            )
-        }
-
         if (editingSignatureApi) {
             SignatureApiEditor(
                 hazeState = hazeState,

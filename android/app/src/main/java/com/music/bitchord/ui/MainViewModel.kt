@@ -3348,7 +3348,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (page.type != BrowseType.ALBUM && page.type != BrowseType.PLAYLIST) return
         // Exactly one loader walks the continuation. While the service owns
         // it the page's own fill-in stops; when the service gives up (or never
-        // took it — a party, a Cast race) the page resumes from the newest token.
+        // took it — a Cast race) the page resumes from the newest token.
         if (snapshot.serviceOwned) {
             if (snapshot.continuationToken != null) fillInJobs.remove(browseId)?.cancel()
         } else if (snapshot.released && snapshot.continuationToken != null &&

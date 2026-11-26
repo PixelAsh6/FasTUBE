@@ -14,7 +14,7 @@ const val EXTRA_QUEUE_BULK_ENTRY_IDS = "bitchord.queueBulk.entryIds"
 const val EXTRA_QUEUE_BULK_ENTRY_ID_PRESENT = "bitchord.queueBulk.entryIdPresent"
 const val EXTRA_QUEUE_BULK_OCCURRENCES = "bitchord.queueBulk.occurrences"
 
-/** Process-local, latest-only UI feedback; never persisted or sent to a party. */
+/** Process-local, latest-only UI feedback; never persisted. */
 data class QueueUndoNotice(val token: String, val message: String)
 
 object QueueScreenUndo {
