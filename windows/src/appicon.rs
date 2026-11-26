@@ -20,15 +20,24 @@ pub struct Variant {
 
 macro_rules! variant {
     ($id:literal, $name:literal) => {
-        Variant { id: $id, name: $name, ico: include_bytes!(concat!("../assets/icon/variants/", $id, ".ico")), badge: include_bytes!(concat!("../assets/badge/", $id, ".png")) }
+        Variant {
+            id: $id,
+            name: $name,
+            ico: include_bytes!(concat!("../assets/icon/variants/", $id, ".ico")),
+            badge: include_bytes!(concat!("../assets/badge/", $id, ".png")),
+        }
     };
 }
 
 pub const CLASSIC: &str = "classic";
 
 pub static ALL: &[Variant] = &[
-    Variant { id: CLASSIC, name: "Classic", ico: include_bytes!("../assets/icon/icon.ico"), badge: include_bytes!("../assets/badge/classic.png") },
-    variant!("official", "FasTUBE"),
+    Variant {
+        id: CLASSIC,
+        name: "Classic",
+        ico: include_bytes!("../assets/icon/icon.ico"),
+        badge: include_bytes!("../assets/badge/classic.png"),
+    },
     variant!("smilering", "Smile ring"),
     variant!("gear", "Rust gear"),
     variant!("wave", "Waveform"),
@@ -39,11 +48,32 @@ pub static ALL: &[Variant] = &[
     variant!("fluent", "Fluent"),
 ];
 
-/// Where the website serves the icons' badges (`assets/badge`).
-const BADGE_BASE: &str = "https://grapedjuice.github.io/ytm-rs/badge/";
+/// Where the website serves the icons' badges (`docs/badge`, deployed with the Pages
+/// site). Ours, never upstream's: a badge URL here used to hand Discord the old mark.
+const BADGE_BASE: &str = "https://pixelash6.github.io/FasTUBE/badge/";
 
 pub fn get(id: &str) -> &'static Variant {
     ALL.iter().find(|v| v.id == id).unwrap_or(&ALL[0])
+}
+
+/// The FasTUBE mark (the FT monogram) as a texture, uploaded once per context: the
+/// sidebar's logo draws from it instead of the old hand-painted circle.
+pub fn mark_texture(ctx: &egui::Context) -> egui::TextureHandle {
+    let id = egui::Id::unique("fastube-mark");
+    if let Some(tex) = ctx.data_mut(|d| d.get_temp::<egui::TextureHandle>(id)) {
+        return tex;
+    }
+    let img = image::load_from_memory(include_bytes!("../assets/icon/icon.png"))
+        .expect("the bundled mark decodes")
+        .to_rgba8();
+    let size = [img.width() as usize, img.height() as usize];
+    let tex = ctx.load_texture(
+        "fastube-mark",
+        egui::ColorImage::from_rgba_unmultiplied(size, img.as_raw()),
+        egui::TextureOptions::LINEAR,
+    );
+    ctx.data_mut(|d| d.insert_temp(id, tex.clone()));
+    tex
 }
 
 impl Variant {
@@ -53,7 +83,11 @@ impl Variant {
 
     /// The icon whose badge is at `url`.
     pub fn by_badge_url(url: &str) -> Option<&'static Self> {
-        ALL.iter().find(|v| url.strip_prefix(BADGE_BASE).and_then(|f| f.strip_suffix(".png")) == Some(v.id))
+        ALL.iter().find(|v| {
+            url.strip_prefix(BADGE_BASE)
+                .and_then(|f| f.strip_suffix(".png"))
+                == Some(v.id)
+        })
     }
 
     /// The PNG of the smallest entry at least `size` px wide (else the largest).
@@ -70,19 +104,33 @@ impl Variant {
     /// Pixels at `size` px, for the window and tray icons.
     pub fn rgba(&self, size: u32) -> Option<image::RgbaImage> {
         let img = image::load_from_memory(self.png(size)).ok()?.into_rgba8();
-        Some(if img.width() == size { img } else { image::imageops::resize(&img, size, size, image::imageops::FilterType::Lanczos3) })
+        Some(if img.width() == size {
+            img
+        } else {
+            image::imageops::resize(&img, size, size, image::imageops::FilterType::Lanczos3)
+        })
     }
 
     pub fn icon_data(&self) -> Option<egui::IconData> {
         let img = self.rgba(256)?;
-        Some(egui::IconData { width: img.width(), height: img.height(), rgba: img.into_raw() })
+        Some(egui::IconData {
+            width: img.width(),
+            height: img.height(),
+            rgba: img.into_raw(),
+        })
     }
 }
 
 /// (width, PNG bytes) of each entry. A width byte of 0 means 256.
 fn ico_entries(ico: &'static [u8]) -> Vec<(u32, &'static [u8])> {
-    let u16_at = |i: usize| ico.get(i..i + 2).map(|b| u16::from_le_bytes([b[0], b[1]]) as usize);
-    let u32_at = |i: usize| ico.get(i..i + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize);
+    let u16_at = |i: usize| {
+        ico.get(i..i + 2)
+            .map(|b| u16::from_le_bytes([b[0], b[1]]) as usize)
+    };
+    let u32_at = |i: usize| {
+        ico.get(i..i + 4)
+            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize)
+    };
     let n = u16_at(4).unwrap_or(0);
     (0..n)
         .filter_map(|i| {
@@ -130,7 +178,8 @@ mod window {
     use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
     use windows::Win32::UI::HiDpi::{GetDpiForWindow, GetSystemMetricsForDpi};
     use windows::Win32::UI::WindowsAndMessaging::{
-        CreateIconFromResourceEx, DestroyIcon, HICON, ICON_BIG, ICON_SMALL, LR_DEFAULTCOLOR, SM_CXICON, SM_CXSMICON, SendMessageW, WM_SETICON,
+        CreateIconFromResourceEx, DestroyIcon, SendMessageW, HICON, ICON_BIG, ICON_SMALL,
+        LR_DEFAULTCOLOR, SM_CXICON, SM_CXSMICON, WM_SETICON,
     };
 
     use super::Variant;
@@ -149,9 +198,21 @@ mod window {
             let dpi = GetDpiForWindow(hwnd);
             for (kind, metric) in [(ICON_BIG, SM_CXICON), (ICON_SMALL, SM_CXSMICON)] {
                 let px = GetSystemMetricsForDpi(metric, dpi).max(16);
-                match CreateIconFromResourceEx(v.png(px as u32), true, 0x0003_0000, px, px, LR_DEFAULTCOLOR) {
+                match CreateIconFromResourceEx(
+                    v.png(px as u32),
+                    true,
+                    0x0003_0000,
+                    px,
+                    px,
+                    LR_DEFAULTCOLOR,
+                ) {
                     Ok(icon) => {
-                        SendMessageW(hwnd, WM_SETICON, Some(WPARAM(kind as usize)), Some(LPARAM(icon.0 as isize)));
+                        SendMessageW(
+                            hwnd,
+                            WM_SETICON,
+                            Some(WPARAM(kind as usize)),
+                            Some(LPARAM(icon.0 as isize)),
+                        );
                         made.push(icon.0 as usize);
                     }
                     Err(e) => log::warn!("app icon {}: {e}", v.id),
@@ -194,19 +255,27 @@ fn icon_file(v: &Variant, data_dir: &Path) -> anyhow::Result<PathBuf> {
 mod shortcuts {
     use std::path::{Path, PathBuf};
 
-    use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx, CoTaskMemFree, IPersistFile, STGM_READ};
-    use windows::Win32::UI::Shell::{
-        FOLDERID_CommonPrograms, FOLDERID_Desktop, FOLDERID_Programs, FOLDERID_PublicDesktop, IShellLinkW, KF_FLAG_DEFAULT, SHCNE_ASSOCCHANGED, SHCNE_UPDATEITEM,
-        SHCNF_IDLIST, SHCNF_PATHW, SHChangeNotify, SHGetKnownFolderPath, ShellLink,
+    use windows::core::{Interface, GUID, HSTRING, PCWSTR};
+    use windows::Win32::System::Com::{
+        CoCreateInstance, CoInitializeEx, CoTaskMemFree, IPersistFile, CLSCTX_INPROC_SERVER,
+        COINIT_APARTMENTTHREADED, STGM_READ,
     };
-    use windows::core::{GUID, HSTRING, Interface, PCWSTR};
+    use windows::Win32::UI::Shell::{
+        FOLDERID_CommonPrograms, FOLDERID_Desktop, FOLDERID_Programs, FOLDERID_PublicDesktop,
+        IShellLinkW, SHChangeNotify, SHGetKnownFolderPath, ShellLink, KF_FLAG_DEFAULT,
+        SHCNE_ASSOCCHANGED, SHCNE_UPDATEITEM, SHCNF_IDLIST, SHCNF_PATHW,
+    };
 
     use super::Variant;
 
     /// How many shortcuts were changed.
     pub fn sync(v: &Variant, data_dir: &Path) -> anyhow::Result<usize> {
         let exe = std::env::current_exe()?;
-        let icon = if v.id == super::CLASSIC { exe.clone() } else { super::icon_file(v, data_dir)? };
+        let icon = if v.id == super::CLASSIC {
+            exe.clone()
+        } else {
+            super::icon_file(v, data_dir)?
+        };
         // SAFETY: COM on this thread only, for the shell link objects below.
         unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok()? };
         let mut changed = Vec::new();
@@ -218,7 +287,10 @@ mod shortcuts {
                 Err(e) => log::debug!("{}: {e}", lnk.display()),
             }
         }
-        if let (Some(user), Some(common)) = (known_folder(&FOLDERID_Programs), known_folder(&FOLDERID_CommonPrograms)) {
+        if let (Some(user), Some(common)) = (
+            known_folder(&FOLDERID_Programs),
+            known_folder(&FOLDERID_CommonPrograms),
+        ) {
             per_user_copies(&user, &common, &exe, &icon, &mut changed);
         }
         if !changed.is_empty() {
@@ -252,11 +324,19 @@ mod shortcuts {
     /// shows its icon on the taskbar over the window's. A shortcut at the same place in
     /// the user's own Start menu takes its place, so give that one the icon, and remove
     /// it again once the all-users one shows the right icon (always so for classic).
-    fn per_user_copies(user: &Path, common: &Path, exe: &Path, icon: &Path, changed: &mut Vec<PathBuf>) {
+    fn per_user_copies(
+        user: &Path,
+        common: &Path,
+        exe: &Path,
+        icon: &Path,
+        changed: &mut Vec<PathBuf>,
+    ) {
         let mut shared = Vec::new();
         collect(common, 2, &mut shared);
         for lnk in shared {
-            let Ok(rel) = lnk.strip_prefix(common) else { continue };
+            let Ok(rel) = lnk.strip_prefix(common) else {
+                continue;
+            };
             let own = user.join(rel);
             let result = open(&lnk).and_then(|(link, file)| {
                 if !launches(&link, exe)? {
@@ -282,7 +362,10 @@ mod shortcuts {
             match result {
                 Ok(true) => changed.push(own),
                 Ok(false) => {}
-                Err(e) => log::warn!("app icon: no shortcut of your own for {}: {e:#}", lnk.display()),
+                Err(e) => log::warn!(
+                    "app icon: no shortcut of your own for {}: {e:#}",
+                    lnk.display()
+                ),
             }
         }
     }
@@ -322,18 +405,28 @@ mod shortcuts {
         unsafe { link.GetIconLocation(&mut buf, &mut index)? };
         let current = from_wide(&buf);
         // No icon of its own means the exe's, which is the classic one.
-        let showing = if current.as_os_str().is_empty() { exe.to_owned() } else { current };
+        let showing = if current.as_os_str().is_empty() {
+            exe.to_owned()
+        } else {
+            current
+        };
         Ok(same_file(&showing, icon) && index == 0)
     }
 
     fn shortcut_files() -> Vec<PathBuf> {
-        let mut dirs: Vec<(PathBuf, usize)> = [FOLDERID_Programs, FOLDERID_CommonPrograms, FOLDERID_Desktop, FOLDERID_PublicDesktop]
-            .iter()
-            .filter_map(known_folder)
-            .map(|d| (d, 2))
-            .collect();
+        let mut dirs: Vec<(PathBuf, usize)> = [
+            FOLDERID_Programs,
+            FOLDERID_CommonPrograms,
+            FOLDERID_Desktop,
+            FOLDERID_PublicDesktop,
+        ]
+        .iter()
+        .filter_map(known_folder)
+        .map(|d| (d, 2))
+        .collect();
         if let Some(appdata) = std::env::var_os("APPDATA") {
-            let pinned = PathBuf::from(appdata).join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned");
+            let pinned = PathBuf::from(appdata)
+                .join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned");
             dirs.push((pinned.join("TaskBar"), 1));
             dirs.push((pinned.join("StartMenu"), 1));
         }
@@ -350,7 +443,9 @@ mod shortcuts {
     }
 
     fn collect(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
         for e in entries.flatten() {
             let p = e.path();
             if p.is_dir() {
@@ -380,12 +475,14 @@ mod shortcuts {
 
     fn same_file(a: &Path, b: &Path) -> bool {
         let canon = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_owned());
-        canon(a).to_string_lossy().eq_ignore_ascii_case(&canon(b).to_string_lossy())
+        canon(a)
+            .to_string_lossy()
+            .eq_ignore_ascii_case(&canon(b).to_string_lossy())
     }
 
     #[cfg(test)]
     mod tests {
-        use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+        use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
 
         use super::*;
 
@@ -394,14 +491,19 @@ mod shortcuts {
             // SAFETY: COM on this test's thread, on an object it owns.
             unsafe {
                 CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap();
-                let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).unwrap();
+                let link: IShellLinkW =
+                    CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).unwrap();
                 link.SetPath(&HSTRING::from(target.as_os_str())).unwrap();
-                link.cast::<IPersistFile>().unwrap().Save(&HSTRING::from(lnk.as_os_str()), true).unwrap();
+                link.cast::<IPersistFile>()
+                    .unwrap()
+                    .Save(&HSTRING::from(lnk.as_os_str()), true)
+                    .unwrap();
             }
         }
 
         fn scratch(name: &str) -> PathBuf {
-            let dir = std::env::temp_dir().join(format!("ytm-appicon-{name}-{}", std::process::id()));
+            let dir =
+                std::env::temp_dir().join(format!("ytm-appicon-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();
             dir
@@ -491,16 +593,32 @@ mod desktop {
             .map(PathBuf::from)
             .filter(|p| p.is_absolute())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")));
-        let Some(data_home) = data_home else { return Ok(0) };
-        let dirs = std::env::var("XDG_DATA_DIRS").ok().filter(|d| !d.is_empty()).unwrap_or_else(|| "/usr/local/share:/usr/share".into());
-        let system: Vec<PathBuf> = dirs.split(':').filter(|d| !d.is_empty()).map(|d| Path::new(d).join("applications")).collect();
-        let icon = if v.id == super::CLASSIC { None } else { Some(icon_png(v, data_dir)?) };
+        let Some(data_home) = data_home else {
+            return Ok(0);
+        };
+        let dirs = std::env::var("XDG_DATA_DIRS")
+            .ok()
+            .filter(|d| !d.is_empty())
+            .unwrap_or_else(|| "/usr/local/share:/usr/share".into());
+        let system: Vec<PathBuf> = dirs
+            .split(':')
+            .filter(|d| !d.is_empty())
+            .map(|d| Path::new(d).join("applications"))
+            .collect();
+        let icon = if v.id == super::CLASSIC {
+            None
+        } else {
+            Some(icon_png(v, data_dir)?)
+        };
         let apps = data_home.join("applications");
         let changed = sync_at(icon.as_deref(), &apps, &system, &std::env::current_exe()?)?;
         if changed {
             // GLib finds the `fastube://` handler in the MIME cache of the entry's own
             // folder, and a copy here hides the system's entry along with its cache line.
-            let _ = std::process::Command::new("update-desktop-database").arg("-q").arg(&apps).status();
+            let _ = std::process::Command::new("update-desktop-database")
+                .arg("-q")
+                .arg(&apps)
+                .status();
         }
         Ok(changed as usize)
     }
@@ -519,10 +637,17 @@ mod desktop {
     }
 
     /// Give the user's entry in `user_dir` the `icon` (`None`: classic). Whether it changed.
-    fn sync_at(icon: Option<&Path>, user_dir: &Path, system_dirs: &[PathBuf], exe: &Path) -> anyhow::Result<bool> {
+    fn sync_at(
+        icon: Option<&Path>,
+        user_dir: &Path,
+        system_dirs: &[PathBuf],
+        exe: &Path,
+    ) -> anyhow::Result<bool> {
         let user = user_dir.join(FILE);
         let own = std::fs::read_to_string(&user).ok();
-        let system = system_dirs.iter().find_map(|d| std::fs::read_to_string(d.join(FILE)).ok());
+        let system = system_dirs
+            .iter()
+            .find_map(|d| std::fs::read_to_string(d.join(FILE)).ok());
         let value = icon.map_or_else(|| CLASSIC_ICON.to_owned(), |p| p.display().to_string());
         let new = if let Some(f) = own.as_deref().filter(|f| !is_copy(f)) {
             // install.sh's (or one the user made): the icon changes in place.
@@ -530,7 +655,10 @@ mod desktop {
                 return Ok(false);
             }
             with_icon(f, &value, false)
-        } else if let Some(s) = system.as_deref().filter(|s| icon.is_some() && launches(s, exe)) {
+        } else if let Some(s) = system
+            .as_deref()
+            .filter(|s| icon.is_some() && launches(s, exe))
+        {
             // Made afresh from the system's each time, so it keeps up with the package's.
             with_icon(s, &value, true)
         } else if own.as_deref().is_some_and(|f| launches(f, exe)) {
@@ -557,7 +685,11 @@ mod desktop {
 
     /// The lines of the [Desktop Entry] group (the others are its actions).
     fn main_group(desktop: &str) -> impl Iterator<Item = &str> {
-        desktop.lines().skip_while(|l| l.trim() != "[Desktop Entry]").skip(1).take_while(|l| !l.trim_start().starts_with('['))
+        desktop
+            .lines()
+            .skip_while(|l| l.trim() != "[Desktop Entry]")
+            .skip(1)
+            .take_while(|l| !l.trim_start().starts_with('['))
     }
 
     fn key_is(line: &str, key: &str) -> bool {
@@ -566,7 +698,11 @@ mod desktop {
 
     /// Whether the entry's Exec runs `exe` (found on PATH when it's a bare name).
     fn launches(desktop: &str, exe: &Path) -> bool {
-        let Some(exec) = main_group(desktop).find(|l| key_is(l, "Exec")).and_then(|l| l.split_once('=')).map(|(_, v)| v.trim()) else {
+        let Some(exec) = main_group(desktop)
+            .find(|l| key_is(l, "Exec"))
+            .and_then(|l| l.split_once('='))
+            .map(|(_, v)| v.trim())
+        else {
             return false;
         };
         let program = match exec.strip_prefix('"') {
@@ -577,7 +713,11 @@ mod desktop {
         let found = if path.is_absolute() || program.contains('/') {
             Some(path.to_owned())
         } else {
-            std::env::var_os("PATH").and_then(|p| std::env::split_paths(&p).map(|d| d.join(program)).find(|p| p.is_file()))
+            std::env::var_os("PATH").and_then(|p| {
+                std::env::split_paths(&p)
+                    .map(|d| d.join(program))
+                    .find(|p| p.is_file())
+            })
         };
         let canon = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_owned());
         found.is_some_and(|f| canon(&f) == canon(exe))
@@ -622,7 +762,8 @@ mod desktop {
         const ENTRY: &str = "[Desktop Entry]\nType=Application\nName=FasTUBE\nExec=EXE\nIcon=fastube\nStartupWMClass=fastube\nMimeType=x-scheme-handler/fastube;\n\n[Desktop Action x]\nIcon=other\n";
 
         fn scratch(name: &str) -> PathBuf {
-            let dir = std::env::temp_dir().join(format!("ytm-desktop-{name}-{}", std::process::id()));
+            let dir =
+                std::env::temp_dir().join(format!("ytm-desktop-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();
             dir
@@ -633,7 +774,10 @@ mod desktop {
         }
 
         fn icon_line(f: &str) -> String {
-            main_group(f).find(|l| key_is(l, "Icon")).unwrap().to_owned()
+            main_group(f)
+                .find(|l| key_is(l, "Icon"))
+                .unwrap()
+                .to_owned()
         }
 
         #[test]
@@ -643,7 +787,10 @@ mod desktop {
             assert!(is_copy(&f) && f.ends_with("[Desktop Action x]\nIcon=other\n"));
             // Back again: as it was.
             assert_eq!(with_icon(&f, "fastube", false), ENTRY);
-            assert_eq!(icon_line(&with_icon("[Desktop Entry]\nName=x\n", "a.png", false)), "Icon=a.png");
+            assert_eq!(
+                icon_line(&with_icon("[Desktop Entry]\nName=x\n", "a.png", false)),
+                "Icon=a.png"
+            );
         }
 
         #[test]
@@ -660,14 +807,21 @@ mod desktop {
             assert!(!sync_at(Some(&icon), &user, &[], &exe).unwrap());
             // Classic puts the theme's icon back, and the entry stays.
             assert!(sync_at(None, &user, &[], &exe).unwrap());
-            assert_eq!(std::fs::read_to_string(user.join(FILE)).unwrap(), entry(&exe));
+            assert_eq!(
+                std::fs::read_to_string(user.join(FILE)).unwrap(),
+                entry(&exe)
+            );
             std::fs::remove_dir_all(&dir).unwrap();
         }
 
         #[test]
         fn a_package_entry_gets_a_copy_until_classic() {
             let dir = scratch("copy");
-            let (user, system, exe) = (dir.join("user"), dir.join("system"), std::env::current_exe().unwrap());
+            let (user, system, exe) = (
+                dir.join("user"),
+                dir.join("system"),
+                std::env::current_exe().unwrap(),
+            );
             std::fs::create_dir_all(&system).unwrap();
             std::fs::write(system.join(FILE), entry(&exe)).unwrap();
             let icon = dir.join("vinyl.png");
@@ -685,7 +839,11 @@ mod desktop {
         #[test]
         fn another_copy_of_the_apps_entry_is_left_alone() {
             let dir = scratch("other");
-            let (user, system, exe) = (dir.join("user"), dir.join("system"), std::env::current_exe().unwrap());
+            let (user, system, exe) = (
+                dir.join("user"),
+                dir.join("system"),
+                std::env::current_exe().unwrap(),
+            );
             let other = dir.join("ytm-rs");
             std::fs::write(&other, b"not this exe").unwrap();
             for d in [&user, &system] {
@@ -713,9 +871,15 @@ mod tests {
     fn every_icon_has_every_size() {
         for v in ALL {
             let sizes: Vec<u32> = ico_entries(v.ico).iter().map(|(w, _)| *w).collect();
-            assert!(sizes.contains(&16) && sizes.contains(&32) && sizes.contains(&256), "{}: {sizes:?}", v.id);
+            assert!(
+                sizes.contains(&16) && sizes.contains(&32) && sizes.contains(&256),
+                "{}: {sizes:?}",
+                v.id
+            );
             for size in [16, 24, 32, 56, 256] {
-                let img = v.rgba(size).unwrap_or_else(|| panic!("{} doesn't decode at {size}", v.id));
+                let img = v
+                    .rgba(size)
+                    .unwrap_or_else(|| panic!("{} doesn't decode at {size}", v.id));
                 assert_eq!(img.dimensions(), (size, size), "{}", v.id);
             }
         }
